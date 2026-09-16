@@ -577,11 +577,20 @@ public static class ApiEndpoints
             if (!IsHttpsOrEmpty(request.BaseUrl)) return Validation("HTTPS_REQUIRED", "baseUrl", "Production base URL must use HTTPS.");
             if (!string.IsNullOrWhiteSpace(request.DeploymentTargetKey) && !IsDeploymentTarget(request.DeploymentTargetKey)) return Validation("INVALID_DEPLOYMENT_TARGET", "deploymentTargetKey", "Use at most 58 lowercase Latin letters, numbers and hyphens.");
             if (!string.IsNullOrWhiteSpace(request.SearchVerificationToken) && !IsSearchVerificationToken(request.SearchVerificationToken)) return Validation("INVALID_SEARCH_VERIFICATION", "searchVerificationToken", "Enter only the Google verification token, not an HTML tag.");
-            var site = await db.Sites.Include(x => x.Locales).Include(x => x.Translations).SingleOrDefaultAsync(x => x.Id == id && x.PersonId == http.User.PersonId(), ct); if (site is null) return Results.NotFound(); if (site.Version != request.Version) return Conflict();
+            var site = await db.Sites.Include(x => x.Locales).SingleOrDefaultAsync(x => x.Id == id && x.PersonId == http.User.PersonId(), ct); if (site is null) return Results.NotFound(); if (site.Version != request.Version) return Conflict();
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
             site.Name = request.Name.Trim(); site.Slug = request.Slug; site.BaseUrl = Clean(request.BaseUrl); site.DefaultLocale = request.DefaultLocale; site.IsPrimaryIdentitySite = request.IsPrimaryIdentitySite; site.DeploymentTargetKey = Clean(request.DeploymentTargetKey); site.SearchVerificationToken = Clean(request.SearchVerificationToken);
             var wantedLocales = request.Locales.Distinct().ToHashSet(); db.SiteLocales.RemoveRange(site.Locales.Where(x => !wantedLocales.Contains(x.Locale))); db.SiteLocales.AddRange(wantedLocales.Where(locale => site.Locales.All(x => x.Locale != locale)).Select(locale => new SiteLocale { SiteId = id, Locale = locale }));
-            UpsertSiteTranslation(site, Locale.En, request.En); UpsertSiteTranslation(site, Locale.Ar, request.Ar);
-            await Audit(db, http.User.AdminId(), "site.updated", "Site", id, ct); return Results.Ok(site);
+            await db.SiteTranslations.Where(x => x.SiteId == id).ExecuteDeleteAsync(ct);
+            var translations = new[]
+            {
+                new SiteTranslation { SiteId = id, Locale = Locale.En, Title = request.En.Title.Trim(), Description = request.En.Description.Trim() },
+                new SiteTranslation { SiteId = id, Locale = Locale.Ar, Title = request.Ar.Title.Trim(), Description = request.Ar.Description.Trim() }
+            };
+            site.Translations = translations.ToList(); db.SiteTranslations.AddRange(translations);
+            await Audit(db, http.User.AdminId(), "site.updated", "Site", id, ct);
+            await transaction.CommitAsync(ct);
+            return Results.Ok(site);
         });
         admin.MapDelete("/sites/{id:guid}", async (Guid id, HttpContext http, ResumeDbContext db, CancellationToken ct) =>
         {
