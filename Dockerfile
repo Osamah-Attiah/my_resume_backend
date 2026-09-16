@@ -10,4 +10,4 @@ COPY --from=build /app .
 ENV ASPNETCORE_URLS=http://0.0.0.0:8080
 EXPOSE 8080
 USER $APP_UID
-ENTRYPOINT ["dotnet", "resume.API.dll"]
+CMD ["dotnet", "resume.API.dll"]
