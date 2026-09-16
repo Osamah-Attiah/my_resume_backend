@@ -1,18 +1,18 @@
-# منصة السيرة الشخصية
+# Personal Resume Platform
 
-منصة ثنائية اللغة لإدارة حقائق السيرة مرة واحدة، ثم انتقائها داخل عدة بروفايلات ومواقع. الهوية المهنية الأساسية: **Software Engineer | Flutter & .NET Backend**. كل البيانات المضمّنة في المستودع بيانات اختبار موسومة بوضوح، ولا تمثل خبرة أو إنجازًا حقيقيًا.
+A bilingual platform for managing resume facts once and selecting them for multiple profiles and websites. The professional identity represented by the platform is **Software Engineer | Flutter & .NET Backend**. All data included in this repository is clearly marked as test data and does not represent real experience or achievements.
 
-## المكونات
+## Components
 
-- `resume.API`: ASP.NET Core API محمي بمالك واحد، JWT قصير العمر، rate limiting، سجل تدقيق، نشر idempotent وhealth checks.
-- `resume.Core` و`resume.infrastructure`: نموذج PostgreSQL وEF Core يدعم الترجمات، البروفايلات، المواقع، SEO ونسخ النشر الثابتة.
-- `apps/admin`: لوحة React/Vite عربية/إنجليزية، RTL/LTR، وحالات تحميل/خطأ/فراغ.
-- `apps/public`: موقع Next.js مُصدّر بالكامل كملفات ثابتة؛ لا يتصل بالـAPI وقت زيارة الجمهور.
-- `packages/resume-template`: معاينة HTML وقالب PDF أحادي العمود مناسب لـATS مع فحص آلي للنص والخطوط.
+- `resume.API`: An ASP.NET Core API for a single owner, with short-lived JWTs, rate limiting, audit logging, idempotent publishing, and health checks.
+- `resume.Core` and `resume.infrastructure`: The PostgreSQL and EF Core model for translations, profiles, websites, SEO, and static publication snapshots.
+- `apps/admin`: A React/Vite dashboard in Arabic and English, with RTL/LTR layouts and loading, error, and empty states.
+- `apps/public`: A Next.js site fully exported as static files. It does not connect to the API when visitors browse the site.
+- `packages/resume-template`: An HTML preview and ATS-friendly, single-column PDF template, with automated text and font checks.
 
-## التشغيل المحلي
+## Local development
 
-المتطلبات: .NET SDK 10، Node.js 24، Docker، Python 3.12 وPoppler (`pdftotext`, `pdffonts`, `pdfinfo`, `pdftoppm`).
+Requirements: .NET SDK 10, Node.js 24, Docker, Python 3.12, and Poppler (`pdftotext`, `pdffonts`, `pdfinfo`, and `pdftoppm`).
 
 ```bash
 cp .env.example .env
@@ -23,7 +23,7 @@ BOOTSTRAP_ADMIN_EMAIL='owner@example.invalid' BOOTSTRAP_ADMIN_PASSWORD='replace-
 dotnet run --project resume.API --urls http://127.0.0.1:5080
 ```
 
-في نافذتين أخريين:
+In two other terminals, start the admin dashboard and public site:
 
 ```bash
 npm ci
@@ -31,9 +31,9 @@ npm --workspace @resume/admin run dev
 npm --workspace @resume/public run dev
 ```
 
-لوحة التحكم: `http://127.0.0.1:5173`، والموقع: `http://127.0.0.1:3000`. وكيل Vite يربط `/api` بالمنفذ 5080 محليًا.
+The admin dashboard runs at `http://127.0.0.1:5173`, and the public site runs at `http://127.0.0.1:3000`. The Vite proxy routes `/api` to port 5080 locally.
 
-## التحقق الكامل
+## Full verification
 
 ```bash
 dotnet build my_resume_backend.sln --no-restore --maxcpucount:1 -p:UseSharedCompilation=false
@@ -46,6 +46,6 @@ npm run build
 npm run test
 ```
 
-للتوليد المحلي دون إنشاء venv يمكن ضبط `PDF_PYTHON_BIN` إلى Python يحتوي حزم `requirements.txt`. في CI تُثبت المتطلبات صراحةً ويُستخدم Node 24.
+To generate PDFs locally without creating a virtual environment, set `PDF_PYTHON_BIN` to a Python interpreter with the packages listed in `requirements.txt` installed. CI installs these requirements explicitly and uses Node.js 24.
 
-تفاصيل التصميم والنشر والأمان وفحص PDF ونتائج القبول في [docs/ARCHITECTURE_AR.md](docs/ARCHITECTURE_AR.md)، [docs/DEPLOYMENT_AR.md](docs/DEPLOYMENT_AR.md)، [docs/SECURITY_AR.md](docs/SECURITY_AR.md)، [docs/PDF_QA_AR.md](docs/PDF_QA_AR.md)، و[docs/QA_RESULTS_AR.md](docs/QA_RESULTS_AR.md).
+For more on the design, deployment, security, PDF checks, and acceptance results, see [Architecture](docs/ARCHITECTURE_AR.md), [Deployment](docs/DEPLOYMENT_AR.md), [Security](docs/SECURITY_AR.md), [PDF QA](docs/PDF_QA_AR.md), and [QA Results](docs/QA_RESULTS_AR.md). These documents are currently written in Arabic.
