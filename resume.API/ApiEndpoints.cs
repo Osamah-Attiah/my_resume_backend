@@ -82,14 +82,27 @@ public static class ApiEndpoints
         });
         admin.MapPut("/person", async (PersonUpdate request, HttpContext http, ResumeDbContext db, CancellationToken ct) =>
         {
-            var person = await db.Persons.Include(x => x.Translations).SingleAsync(x => x.Id == http.User.PersonId(), ct);
+            var person = await db.Persons.SingleAsync(x => x.Id == http.User.PersonId(), ct);
             if (person.Version != request.Version) return Conflict();
+
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+            await db.PersonTranslations.Where(x => x.PersonId == person.Id).ExecuteDeleteAsync(ct);
+
             person.Email = Clean(request.Email);
             person.Phone = Clean(request.Phone);
             person.DefaultLocale = request.DefaultLocale;
-            UpsertPersonTranslation(person, request.En, Locale.En);
-            UpsertPersonTranslation(person, request.Ar, Locale.Ar);
+            person.UpdatedAt = DateTimeOffset.UtcNow;
+
+            var translations = new[]
+            {
+                CreatePersonTranslation(person.Id, request.En, Locale.En),
+                CreatePersonTranslation(person.Id, request.Ar, Locale.Ar)
+            };
+            person.Translations.AddRange(translations);
+            db.PersonTranslations.AddRange(translations);
+
             await Audit(db, http.User.AdminId(), "person.updated", "Person", person.Id, ct);
+            await transaction.CommitAsync(ct);
             return Results.Ok(PersonDto.From(person));
         });
         admin.MapPost("/person/links", async (LinkUpsert request, HttpContext http, ResumeDbContext db, CancellationToken ct) =>
@@ -985,7 +998,16 @@ public static class ApiEndpoints
         item.IssuedOn = request.IssuedOn; item.ExpiresOn = request.ExpiresOn; item.CredentialId = Clean(request.CredentialId); item.CredentialUrl = Clean(request.CredentialUrl);
         UpsertCertificationTranslation(item, Locale.En, request.En); UpsertCertificationTranslation(item, Locale.Ar, request.Ar);
     }
-    private static void UpsertPersonTranslation(Person person, PersonTranslationInput input, Locale locale) { var t = person.Translations.SingleOrDefault(x => x.Locale == locale); if (t is null) person.Translations.Add(new PersonTranslation { PersonId = person.Id, Locale = locale, FullName = input.FullName.Trim(), City = Clean(input.City), Country = Clean(input.Country), DefaultHeadline = Clean(input.Headline), DefaultSummary = Clean(input.Summary) }); else { t.FullName = input.FullName.Trim(); t.City = Clean(input.City); t.Country = Clean(input.Country); t.DefaultHeadline = Clean(input.Headline); t.DefaultSummary = Clean(input.Summary); } }
+    private static PersonTranslation CreatePersonTranslation(Guid personId, PersonTranslationInput input, Locale locale) => new()
+    {
+        PersonId = personId,
+        Locale = locale,
+        FullName = input.FullName.Trim(),
+        City = Clean(input.City),
+        Country = Clean(input.Country),
+        DefaultHeadline = Clean(input.Headline),
+        DefaultSummary = Clean(input.Summary)
+    };
     private static void UpsertLinkTranslation(PersonLink link, Locale locale, string value) { var t = link.Translations.SingleOrDefault(x => x.Locale == locale); if (t is null) link.Translations.Add(new PersonLinkTranslation { PersonLinkId = link.Id, Locale = locale, Label = value.Trim() }); else t.Label = value.Trim(); }
     private static void UpsertSkillTranslation(Skill skill, Locale locale, string value) { var t = skill.Translations.SingleOrDefault(x => x.Locale == locale); if (t is null) skill.Translations.Add(new SkillTranslation { SkillId = skill.Id, Locale = locale, DisplayName = value.Trim() }); else t.DisplayName = value.Trim(); }
     private static void UpsertProjectTranslation(Project project, Locale locale, ProjectTranslationInput input) { var t = project.Translations.SingleOrDefault(x => x.Locale == locale); if (t is null) project.Translations.Add(new ProjectTranslation { ProjectId = project.Id, Locale = locale, Name = input.Name.Trim(), Role = Clean(input.Role), Summary = input.Summary.Trim(), Description = Clean(input.Description) }); else { t.Name = input.Name.Trim(); t.Role = Clean(input.Role); t.Summary = input.Summary.Trim(); t.Description = Clean(input.Description); } }
