@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: resume-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /health/ready
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Auth__SigningKey
+        generateValue: true
+      - key: Auth__Issuer
+        value: resume-api
+      - key: Auth__Audience
+        value: resume-admin
+      - key: Cors__AdminOrigin
+        sync: false
+      - key: Publishing__CallbackSecret
+        generateValue: true
+      - key: GitHub__Owner
+        sync: false
+      - key: GitHub__PublishRepository
+        sync: false
+      - key: GitHub__PublishWorkflow
+        value: publish-site.yml
+      - key: GitHub__PublishRef
+        value: main
+      - key: GitHub__PrivateExportRepository
+        sync: false
+      - key: GitHub__PrivateExportWorkflow
+        value: export-private-pdf.yml
+      - key: GitHub__PrivateExportRef
+        value: main
+      - key: GitHub__ProductRepository
+        sync: false
+      - key: GitHub__ProductRef
+        sync: false
+      - key: GitHub__Token
+        sync: false
+      - key: Cloudinary__CloudName
+        sync: false
+      - key: Cloudinary__ApiKey
+        sync: false
+      - key: Cloudinary__ApiSecret
+        sync: false

@@ -1,0 +1,26 @@
+{
+  "name": "@resume/public",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "\"$npm_node_execpath\" ../../node_modules/next/dist/bin/next dev -p 3000",
+    "build": "\"$npm_node_execpath\" ../../node_modules/next/dist/bin/next build && \"$npm_node_execpath\" scripts/generate-og-images.mjs && \"$npm_node_execpath\" scripts/postprocess-static.mjs",
+    "test": "\"$npm_node_execpath\" ../../node_modules/vitest/vitest.mjs run --passWithNoTests"
+  },
+  "dependencies": {
+    "@fontsource/manrope": "5.2.8",
+    "@fontsource/noto-sans-arabic": "5.2.8",
+    "@resume/contracts": "*",
+    "lucide-react": "0.468.0",
+    "next": "16.1.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.13",
+    "@types/react": "19.2.10",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  }
+}

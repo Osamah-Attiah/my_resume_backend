@@ -1,0 +1,6 @@
+@resume.API_HostAddress = http://localhost:5062
+
+GET {{resume.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

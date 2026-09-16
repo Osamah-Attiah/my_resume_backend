@@ -1,0 +1,15 @@
+{
+  "name": "@resume/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "build": "\"$npm_node_execpath\" ../../node_modules/typescript/bin/tsc --noEmit",
+    "test": "\"$npm_node_execpath\" ../../node_modules/vitest/vitest.mjs run --passWithNoTests"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  }
+}

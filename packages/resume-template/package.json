@@ -1,0 +1,28 @@
+{
+  "name": "@resume/template",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "\"$npm_node_execpath\" ../../node_modules/typescript/bin/tsc --noEmit",
+    "generate": "\"$npm_node_execpath\" scripts/generate-resumes.mjs",
+    "qa": "\"$npm_node_execpath\" ../../node_modules/tsx/dist/cli.mjs scripts/qa-pdfs.ts",
+    "test": "\"$npm_node_execpath\" ../../node_modules/vitest/vitest.mjs run --passWithNoTests"
+  },
+  "dependencies": {
+    "@fontsource/cairo": "^5.3.0",
+    "@fontsource/manrope": "5.2.8",
+    "@resume/contracts": "*",
+    "playwright": "1.58.2",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.13",
+    "@types/react": "19.2.10",
+    "@types/react-dom": "19.2.3",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vitest": "4.0.18"
+  }
+}

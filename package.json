@@ -1,0 +1,12 @@
+{
+  "name": "resume-platform",
+  "private": true,
+  "packageManager": "npm@11.17.0",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "build": "\"$npm_node_execpath\" scripts/build.mjs",
+    "test": "\"$npm_node_execpath\" scripts/test.mjs",
+    "pdf:generate": "\"$npm_node_execpath\" packages/resume-template/scripts/generate-resumes.mjs",
+    "pdf:qa": "\"$npm_node_execpath\" node_modules/tsx/dist/cli.mjs packages/resume-template/scripts/qa-pdfs.ts"
+  }
+}

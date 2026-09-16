@@ -1,0 +1,133 @@
+name: Publish immutable site snapshot
+on:
+  workflow_dispatch:
+    inputs:
+      publication_id:
+        description: Publication UUID created by the admin API
+        required: true
+      attempt_id:
+        description: Current publication attempt UUID created by the admin API
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: resume-publication-${{ inputs.publication_id }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: npm ci
+      - run: python -m pip install -r packages/resume-template/requirements.txt
+      - name: Register workflow run
+        continue-on-error: true
+        env:
+          API_ORIGIN: ${{ secrets.RESUME_API_ORIGIN }}
+          CALLBACK_SECRET: ${{ secrets.RESUME_PUBLISHING_CALLBACK_SECRET }}
+          PUBLICATION_ID: ${{ inputs.publication_id }}
+          ATTEMPT_ID: ${{ inputs.attempt_id }}
+        run: >-
+          curl --fail --silent --show-error -X POST
+          -H "X-Publishing-Secret: ${CALLBACK_SECRET}"
+          -H "Content-Type: application/json"
+          --data "{\"state\":\"building\",\"workflowRunId\":\"${GITHUB_RUN_ID}\"}"
+          "${API_ORIGIN}/api/v1/internal/publications/${PUBLICATION_ID}/attempts/${ATTEMPT_ID}/progress"
+      - name: Fetch immutable publication snapshot
+        id: snapshot
+        env:
+          API_ORIGIN: ${{ secrets.RESUME_API_ORIGIN }}
+          CALLBACK_SECRET: ${{ secrets.RESUME_PUBLISHING_CALLBACK_SECRET }}
+          PUBLICATION_ID: ${{ inputs.publication_id }}
+        run: |
+          mkdir -p artifacts
+          curl --fail --silent --show-error \
+            -H "X-Publishing-Secret: ${CALLBACK_SECRET}" \
+            "${API_ORIGIN}/api/v1/internal/publications/${PUBLICATION_ID}/snapshot" \
+            --output artifacts/publication.json
+          echo "base_url=$(jq -er '.baseUrl | select(type == \"string\" and startswith(\"https://\"))' artifacts/publication.json)" >> "${GITHUB_OUTPUT}"
+      - name: Generate and verify public artifacts
+        env:
+          PUBLIC_SNAPSHOT_PATH: ${{ github.workspace }}/artifacts/publication.json
+        run: |
+          npm run pdf:generate
+          curl --fail --silent --show-error -X POST \
+            -H "X-Publishing-Secret: ${{ secrets.RESUME_PUBLISHING_CALLBACK_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --data "{\"state\":\"validating\",\"workflowRunId\":\"${GITHUB_RUN_ID}\"}" \
+            "${{ secrets.RESUME_API_ORIGIN }}/api/v1/internal/publications/${{ inputs.publication_id }}/attempts/${{ inputs.attempt_id }}/progress" || true
+          npm run pdf:qa
+          npm run build
+          npm run test
+      - name: Resolve deployment target from immutable snapshot
+        id: deployment
+        run: |
+          project_name="$(jq -er '.site.deploymentTargetKey | select(type == "string" and test("^[a-z0-9]+(-[a-z0-9]+)*$") and length <= 58)' artifacts/publication.json)"
+          echo "project_name=${project_name}" >> "${GITHUB_OUTPUT}"
+      - name: Deploy static output
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT_NAME: ${{ steps.deployment.outputs.project_name }}
+        run: |
+          curl --fail --silent --show-error -X POST \
+            -H "X-Publishing-Secret: ${{ secrets.RESUME_PUBLISHING_CALLBACK_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --data "{\"state\":\"deploying\",\"workflowRunId\":\"${GITHUB_RUN_ID}\"}" \
+            "${{ secrets.RESUME_API_ORIGIN }}/api/v1/internal/publications/${{ inputs.publication_id }}/attempts/${{ inputs.attempt_id }}/progress" || true
+          npx --yes wrangler@4 pages deploy apps/public/out --project-name "${PROJECT_NAME}"
+      - name: Build publication evidence
+        env:
+          PUBLICATION_ID: ${{ inputs.publication_id }}
+          ATTEMPT_ID: ${{ inputs.attempt_id }}
+          DEPLOYMENT_URL: ${{ steps.snapshot.outputs.base_url }}
+          PROVIDER_DEPLOYMENT_ID: cloudflare-pages-${{ github.run_id }}-${{ github.run_attempt }}
+        run: node scripts/create-publication-result.mjs
+      - name: Retain public QA evidence briefly
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-site-evidence-${{ inputs.publication_id }}
+          path: |
+            artifacts/publication-artifact-manifest.json
+            artifacts/publication-result.json
+            artifacts/pdf-qa/*/qa-report.json
+          retention-days: 7
+      - name: Mark publication successful
+        if: success()
+        continue-on-error: true
+        env:
+          API_ORIGIN: ${{ secrets.RESUME_API_ORIGIN }}
+          CALLBACK_SECRET: ${{ secrets.RESUME_PUBLISHING_CALLBACK_SECRET }}
+          PUBLICATION_ID: ${{ inputs.publication_id }}
+          ATTEMPT_ID: ${{ inputs.attempt_id }}
+        run: >-
+          curl --fail --silent --show-error -X POST
+          -H "X-Publishing-Secret: ${CALLBACK_SECRET}"
+          -H "Content-Type: application/json"
+          --data @artifacts/publication-result.json
+          "${API_ORIGIN}/api/v1/internal/publications/${PUBLICATION_ID}/attempts/${ATTEMPT_ID}/result"
+      - name: Mark publication failed
+        if: failure()
+        continue-on-error: true
+        env:
+          API_ORIGIN: ${{ secrets.RESUME_API_ORIGIN }}
+          CALLBACK_SECRET: ${{ secrets.RESUME_PUBLISHING_CALLBACK_SECRET }}
+          PUBLICATION_ID: ${{ inputs.publication_id }}
+          ATTEMPT_ID: ${{ inputs.attempt_id }}
+        run: >-
+          curl --fail --silent --show-error -X POST
+          -H "X-Publishing-Secret: ${CALLBACK_SECRET}"
+          -H "Content-Type: application/json"
+          --data '{"state":"failed","errorCode":"WORKFLOW_FAILED","errorSummary":"GitHub Actions build, validation, or deployment failed. Inspect the workflow logs."}'
+          "${API_ORIGIN}/api/v1/internal/publications/${PUBLICATION_ID}/attempts/${ATTEMPT_ID}/result"
