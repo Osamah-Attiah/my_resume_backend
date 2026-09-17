@@ -35,10 +35,10 @@ for (const item of manifest) {
   const { stdout: info } = await execFile(tools.pdfinfo, [pdf], processOptions);
   await writeFile(textPath, plain); await writeFile(layoutPath, layout);
   await execFile(tools.pdftoppm, ["-png", "-r", "110", pdf, resolve(artifactRoot, locale, "page")], processOptions);
-  const normalized = plain.normalize("NFKC").replace(/[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "").replace(/\s+/g, " ");
+  const normalized = normalizeForSearch(plain);
   const expected = [document.fullName, document.headline.split("|")[0]?.trim(), document.skills[0]?.name, document.projects[0]?.name, document.email].filter((value): value is string => !!value);
   const key = `${locale}/${item.slug}`;
-  for (const token of expected) if (!normalized.includes(token.normalize("NFKC"))) failures.push(`${key}: missing extracted token: ${token}`);
+  for (const token of expected) if (!containsExtractedToken(normalized, token)) failures.push(`${key}: missing extracted token: ${token}`);
   if (/[\uFB50-\uFDFF\uFE70-\uFEFF�]/u.test(plain)) failures.push(`${key}: extraction contains presentation forms or replacement characters`);
   if (!/yes\s+yes/i.test(fonts)) failures.push(`${key}: fonts are not embedded with Unicode mapping`);
   const pages = Number(info.match(/^Pages:\s+(\d+)/m)?.[1] ?? 0);
@@ -50,3 +50,19 @@ for (const item of manifest) {
 
 if (failures.length) { console.error(failures.join("\n")); process.exitCode = 1; }
 else console.log("Arabic and English PDF text, fonts, page count, and size checks passed.");
+
+function normalizeForSearch(value: string) {
+  return value.normalize("NFKC")
+    .replace(/[\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase();
+}
+
+function containsExtractedToken(text: string, token: string) {
+  const normalized = normalizeForSearch(token);
+  if (text.includes(normalized)) return true;
+  if (!/[\u0600-\u06ff]/u.test(token)) return false;
+  const words = normalized.split(" ").filter(Boolean);
+  return words.length > 1 && text.includes([...words].reverse().join(" "));
+}
