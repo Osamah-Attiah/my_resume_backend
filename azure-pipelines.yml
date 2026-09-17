@@ -4,9 +4,7 @@ trigger: none
 pr: none
 
 # The API supplies PUBLICATION_ID and ATTEMPT_ID when it queues a run.
-variables:
-  PUBLICATION_ID: ''
-  ATTEMPT_ID: ''
+# Do not declare them in YAML: root-level YAML variables override queue-time values.
 
 pool:
   vmImage: ubuntu-latest
