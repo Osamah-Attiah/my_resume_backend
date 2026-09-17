@@ -47,6 +47,7 @@ steps:
   - bash: |
       set -euo pipefail
       curl --fail-with-body --silent --show-error -X POST \
+        --dump-header - \
         -H "X-Publishing-Secret: ${CALLBACK_SECRET}" \
         -H "Content-Type: application/json" \
         --data "{\"state\":\"building\",\"workflowRunId\":\"${WORKFLOW_RUN_ID}\"}" \
