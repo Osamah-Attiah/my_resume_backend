@@ -105,6 +105,8 @@ h1 { max-width: 900px; margin: 0; font-size: clamp(4rem, 8.2vw, 8rem); font-weig
 .hero-stage h1 { color: var(--on-accent); }
 .hero-stage .eyebrow { color: var(--accent-bright); }
 .headline { max-width: 760px; margin: 28px 0 0; font-size: clamp(1.35rem, 2.25vw, 1.9rem); font-weight: 600; line-height: 1.35; text-wrap: balance; }
+.hero-location { display: inline-flex; align-items: center; gap: 8px; margin: 18px 0 0; color: rgb(255 254 250 / .7); font-size: .86rem; }
+.hero-location svg { color: var(--accent-bright); flex: 0 0 auto; }
 .summary { max-width: 760px; margin: 20px 0 0; color: var(--ink-muted); font-size: 1rem; line-height: 1.78; }
 .hero-stage .summary { color: rgb(255 254 250 / .68); }
 [dir="rtl"] .summary { line-height: 1.9; }

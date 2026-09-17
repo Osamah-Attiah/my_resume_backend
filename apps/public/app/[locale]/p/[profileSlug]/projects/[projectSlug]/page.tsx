@@ -7,7 +7,14 @@ import { absoluteAsset, projectOgPath } from "../../../../../../lib/og";
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return allProfiles().flatMap(profile => profile.projects.map(project => ({ locale: profile.locale, profileSlug: profile.slug, projectSlug: project.slug })));
+  const params = allProfiles().flatMap(profile => profile.projects.map(project => ({ locale: profile.locale, profileSlug: profile.slug, projectSlug: project.slug })));
+  if (params.length > 0) return params;
+
+  // Static export requires at least one path for this dynamic route. Generate
+  // one private placeholder that the page resolves to notFound(), so profiles
+  // with no projects export cleanly without adding demo content.
+  const profile = allProfiles()[0];
+  return profile ? [{ locale: profile.locale, profileSlug: profile.slug, projectSlug: "__no_projects__" }] : [];
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string; profileSlug: string; projectSlug: string }> }): Promise<Metadata> {

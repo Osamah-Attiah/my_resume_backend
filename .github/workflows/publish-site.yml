@@ -1,5 +1,5 @@
 name: Publish immutable site snapshot
-on:
+'on':
   workflow_dispatch:
     inputs:
       publication_id:

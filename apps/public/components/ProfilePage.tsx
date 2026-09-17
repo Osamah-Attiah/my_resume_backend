@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, ArrowUpRight, Download } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Download, MapPin } from "lucide-react";
 import Image from "next/image";
 import type { PublicProfile, PublicProject } from "@resume/contracts";
 import { PageMotion } from "./PageMotion";
@@ -168,6 +168,7 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
             <p className="eyebrow">{profile.locale === "ar" ? "معرض أعمال برمجية" : "Software portfolio"}{profile.demo ? ` · ${profile.locale === "ar" ? "تجريبي" : "Demo"}` : ""}</p>
             <h1 id="profile-name">{profile.fullName}</h1>
             <p className="headline">{profile.headline}</p>
+            {profile.location && <p className="hero-location"><MapPin size={16} aria-hidden="true" /><span>{profile.location}</span></p>}
             {enabled.has("summary") && <p className="summary">{profile.summary}</p>}
             <div className="hero-actions">
               {first && <a className="button button-primary" href="#work">{t.works}<Arrow size={18} aria-hidden="true" /></a>}
@@ -266,7 +267,7 @@ function DetailsSection({ profile, labels, number, sectionKeys }: { profile: Pub
 
 function ProfessionalSection({ profile, labels, sectionKey, number }: { profile: PublicProfile; labels: Labels; sectionKey: string; number: number }) {
   const blocks = [
-    { key: "experience", title: labels.experience, items: profile.experiences.map(item => ({ heading: item.jobTitle + " — " + item.organization, meta: item.startDate + " — " + (item.endDate ?? labels.present), body: item.summary, bullets: item.highlights })) },
+    { key: "experience", title: labels.experience, items: profile.experiences.map(item => ({ heading: item.jobTitle + " — " + item.organization, meta: formatDateRange(item.startDate, item.endDate, labels.present, profile.locale), body: item.summary, bullets: item.highlights })) },
     { key: "education", title: labels.education, items: profile.educations.map(item => ({ heading: item.degree + " — " + item.institution, meta: [item.startDate, item.endDate].filter(Boolean).join(" — "), body: item.notes, bullets: [] })) },
     { key: "certifications", title: labels.certifications, items: profile.certifications.map(item => ({ heading: item.name + " — " + item.issuer, meta: [item.issuedOn, item.expiresOn].filter(Boolean).join(" — "), body: undefined, bullets: [] })) },
     { key: "languages", title: labels.languages, items: profile.languages.map(item => ({ heading: item.languageCode.toUpperCase(), meta: item.proficiency, body: undefined, bullets: [] })) }
@@ -284,4 +285,15 @@ function projectKindLabel(project: PublicProject, labels: Labels) {
   if (project.kind === "Freelance") return labels.freelance;
   if (project.kind === "Employment") return labels.employment;
   return labels.personal;
+}
+
+function formatDateRange(startDate: string, endDate: string | undefined, present: string, locale: "ar" | "en") {
+  return formatDate(startDate, locale) + " — " + (endDate ? formatDate(endDate, locale) : present);
+}
+
+function formatDate(value: string, locale: "ar" | "en") {
+  const [year, month] = value.split("-");
+  const monthNumber = Number(month);
+  if (!year || !month || !Number.isInteger(monthNumber) || monthNumber < 1 || monthNumber > 12) return value;
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-SA" : "en-US", { month: "short", year: "numeric" }).format(new Date(Number(year), monthNumber - 1, 1));
 }
