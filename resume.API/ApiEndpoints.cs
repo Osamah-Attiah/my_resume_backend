@@ -830,8 +830,8 @@ public static class ApiEndpoints
             var attempt = new PublicationAttempt { PublicationId = publication.Id, AttemptNumber = 1, LeaseExpiresAt = DateTimeOffset.UtcNow.AddMinutes(45) };
             publication.Attempts.Add(attempt); db.Add(publication); await Audit(db, http.User.AdminId(), "publication.queued", "Publication", publication.Id, ct);
             var dispatch = await DispatchAndRecordFailure(publication, attempt, http.User.AdminId(), db, dispatcher, ct);
-            if (dispatch.Configured && !dispatch.Succeeded) return Results.Problem(statusCode: 502, title: "GitHub workflow dispatch failed", extensions: new Dictionary<string, object?> { ["code"] = "WORKFLOW_DISPATCH_FAILED", ["publicationId"] = publication.Id, ["attemptId"] = attempt.Id, ["detail"] = dispatch.Error });
-            return Results.Accepted($"/api/v1/admin/publications/{publication.Id}", new { publicationId = publication.Id, attemptId = attempt.Id, statusUrl = $"/api/v1/admin/publications/{publication.Id}", state = publication.State, dispatchMode = dispatch.Configured ? "github" : "manual" });
+            if (dispatch.Configured && !dispatch.Succeeded) return Results.Problem(statusCode: 502, title: "Publication workflow dispatch failed", extensions: new Dictionary<string, object?> { ["code"] = "WORKFLOW_DISPATCH_FAILED", ["publicationId"] = publication.Id, ["attemptId"] = attempt.Id, ["detail"] = dispatch.Error });
+            return Results.Accepted($"/api/v1/admin/publications/{publication.Id}", new { publicationId = publication.Id, attemptId = attempt.Id, statusUrl = $"/api/v1/admin/publications/{publication.Id}", state = publication.State, dispatchMode = DispatchMode(dispatch) });
         });
         admin.MapGet("/publications/{id:guid}", async (Guid id, HttpContext http, ResumeDbContext db, CancellationToken ct) =>
         {
@@ -847,8 +847,8 @@ public static class ApiEndpoints
             db.PublicationAttempts.Add(attempt); publication.State = PublicationState.Queued; publication.CompletedAt = null;
             await Audit(db, http.User.AdminId(), "publication.retried", "Publication", publication.Id, ct);
             var dispatch = await DispatchAndRecordFailure(publication, attempt, http.User.AdminId(), db, dispatcher, ct);
-            if (dispatch.Configured && !dispatch.Succeeded) return Results.Problem(statusCode: 502, title: "GitHub workflow dispatch failed", extensions: new Dictionary<string, object?> { ["code"] = "WORKFLOW_DISPATCH_FAILED", ["publicationId"] = publication.Id, ["attemptId"] = attempt.Id, ["detail"] = dispatch.Error });
-            return Results.Accepted($"/api/v1/admin/publications/{publication.Id}", new { publicationId = publication.Id, attemptId = attempt.Id, state = publication.State, dispatchMode = dispatch.Configured ? "github" : "manual" });
+            if (dispatch.Configured && !dispatch.Succeeded) return Results.Problem(statusCode: 502, title: "Publication workflow dispatch failed", extensions: new Dictionary<string, object?> { ["code"] = "WORKFLOW_DISPATCH_FAILED", ["publicationId"] = publication.Id, ["attemptId"] = attempt.Id, ["detail"] = dispatch.Error });
+            return Results.Accepted($"/api/v1/admin/publications/{publication.Id}", new { publicationId = publication.Id, attemptId = attempt.Id, state = publication.State, dispatchMode = DispatchMode(dispatch) });
         });
         admin.MapPost("/publications/{id:guid}/reconcile", async (Guid id, HttpContext http, ResumeDbContext db, PublicationReconciler reconciler, CancellationToken ct) =>
         {
@@ -887,8 +887,8 @@ public static class ApiEndpoints
             var attempt = new PublicationAttempt { PublicationId = publication.Id, AttemptNumber = 1, LeaseExpiresAt = DateTimeOffset.UtcNow.AddMinutes(45) };
             publication.Attempts.Add(attempt); db.Add(publication); await Audit(db, http.User.AdminId(), "publication.rollback_queued", "Publication", publication.Id, ct);
             var dispatch = await DispatchAndRecordFailure(publication, attempt, http.User.AdminId(), db, dispatcher, ct);
-            if (dispatch.Configured && !dispatch.Succeeded) return Results.Problem(statusCode: 502, title: "GitHub workflow dispatch failed", extensions: new Dictionary<string, object?> { ["code"] = "WORKFLOW_DISPATCH_FAILED", ["publicationId"] = publication.Id, ["attemptId"] = attempt.Id, ["detail"] = dispatch.Error });
-            return Results.Accepted($"/api/v1/admin/publications/{publication.Id}", new { publicationId = publication.Id, attemptId = attempt.Id, sourcePublicationId = source.Id, state = publication.State, dispatchMode = dispatch.Configured ? "github" : "manual" });
+            if (dispatch.Configured && !dispatch.Succeeded) return Results.Problem(statusCode: 502, title: "Publication workflow dispatch failed", extensions: new Dictionary<string, object?> { ["code"] = "WORKFLOW_DISPATCH_FAILED", ["publicationId"] = publication.Id, ["attemptId"] = attempt.Id, ["detail"] = dispatch.Error });
+            return Results.Accepted($"/api/v1/admin/publications/{publication.Id}", new { publicationId = publication.Id, attemptId = attempt.Id, sourcePublicationId = source.Id, state = publication.State, dispatchMode = DispatchMode(dispatch) });
         });
         admin.MapGet("/data-export", async (HttpContext http, ResumeDbContext db, CancellationToken ct) =>
         {
@@ -1095,6 +1095,8 @@ public static class ApiEndpoints
         if (publication.ProfileId is not null && artifactProfileIds.Any(x => x != publication.ProfileId)) return Validation("ARTIFACT_PROFILE_MISMATCH", "artifacts.profileId", "Artifact profile does not match the private export.");
         return null;
     }
+    private static string DispatchMode(DispatchResult dispatch) => !dispatch.Configured ? "manual" : dispatch.Provider ?? "github";
+
     private static async Task<DispatchResult> DispatchAndRecordFailure(Publication publication, PublicationAttempt attempt, Guid actorId, ResumeDbContext db, PublicationDispatcher dispatcher, CancellationToken ct)
     {
         var result = await dispatcher.DispatchAsync(publication.Id, attempt.Id, ct, publication.Purpose);

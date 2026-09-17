@@ -1,0 +1,167 @@
+name: resume-publish-$(Date:yyyyMMdd).$(Rev:r)
+
+trigger: none
+pr: none
+
+# The API supplies PUBLICATION_ID and ATTEMPT_ID when it queues a run.
+variables:
+  PUBLICATION_ID: ''
+  ATTEMPT_ID: ''
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - checkout: self
+
+  - task: UseDotNet@2
+    displayName: Use .NET 10 SDK
+    inputs:
+      packageType: sdk
+      version: 10.0.x
+
+  - task: UseNode@1
+    displayName: Use Node.js 24
+    inputs:
+      version: 24.x
+
+  - task: UsePythonVersion@0
+    displayName: Use Python 3.12
+    inputs:
+      versionSpec: 3.12
+      addToPath: true
+      architecture: x64
+
+  - bash: |
+      set -euo pipefail
+      sudo apt-get update
+      sudo apt-get install -y poppler-utils
+    displayName: Install PDF dependencies
+
+  - bash: npm ci
+    displayName: Install Node dependencies
+
+  - bash: python -m pip install -r packages/resume-template/requirements.txt
+    displayName: Install Python dependencies
+
+  - bash: |
+      set -euo pipefail
+      curl --fail --silent --show-error -X POST \
+        -H "X-Publishing-Secret: ${CALLBACK_SECRET}" \
+        -H "Content-Type: application/json" \
+        --data "{\"state\":\"building\",\"workflowRunId\":\"${WORKFLOW_RUN_ID}\"}" \
+        "${API_ORIGIN}/api/v1/internal/publications/${PUBLICATION_ID}/attempts/${ATTEMPT_ID}/progress"
+    displayName: Register pipeline run
+    env:
+      API_ORIGIN: $(RESUME_API_ORIGIN)
+      CALLBACK_SECRET: $(RESUME_PUBLISHING_CALLBACK_SECRET)
+      PUBLICATION_ID: $(PUBLICATION_ID)
+      ATTEMPT_ID: $(ATTEMPT_ID)
+      WORKFLOW_RUN_ID: $(Build.BuildId)
+
+  - bash: |
+      set -euo pipefail
+      mkdir -p artifacts
+      curl --fail --silent --show-error \
+        -H "X-Publishing-Secret: ${CALLBACK_SECRET}" \
+        "${API_ORIGIN}/api/v1/internal/publications/${PUBLICATION_ID}/snapshot" \
+        --output artifacts/publication.json
+      base_url="$(jq -er '.baseUrl | select(type == "string" and startswith("https://"))' artifacts/publication.json)"
+      echo "##vso[task.setvariable variable=DEPLOYMENT_URL]${base_url}"
+    displayName: Fetch immutable publication snapshot
+    env:
+      API_ORIGIN: $(RESUME_API_ORIGIN)
+      CALLBACK_SECRET: $(RESUME_PUBLISHING_CALLBACK_SECRET)
+      PUBLICATION_ID: $(PUBLICATION_ID)
+
+  - bash: |
+      set -euo pipefail
+      npm run pdf:generate
+      curl --fail --silent --show-error -X POST \
+        -H "X-Publishing-Secret: ${CALLBACK_SECRET}" \
+        -H "Content-Type: application/json" \
+        --data "{\"state\":\"validating\",\"workflowRunId\":\"${WORKFLOW_RUN_ID}\"}" \
+        "${API_ORIGIN}/api/v1/internal/publications/${PUBLICATION_ID}/attempts/${ATTEMPT_ID}/progress" || true
+      npm run pdf:qa
+      npm run build
+      npm run test
+    displayName: Generate, validate, and build public artifacts
+    env:
+      PUBLIC_SNAPSHOT_PATH: $(Build.SourcesDirectory)/artifacts/publication.json
+      API_ORIGIN: $(RESUME_API_ORIGIN)
+      CALLBACK_SECRET: $(RESUME_PUBLISHING_CALLBACK_SECRET)
+      PUBLICATION_ID: $(PUBLICATION_ID)
+      ATTEMPT_ID: $(ATTEMPT_ID)
+      WORKFLOW_RUN_ID: $(Build.BuildId)
+
+  - bash: |
+      set -euo pipefail
+      project_name="$(jq -er '.site.deploymentTargetKey | select(type == "string" and test("^[a-z0-9]+(-[a-z0-9]+)*$") and length <= 58)' artifacts/publication.json)"
+      echo "##vso[task.setvariable variable=CLOUDFLARE_PROJECT_NAME]${project_name}"
+    displayName: Resolve Cloudflare Pages project
+
+  - bash: |
+      set -euo pipefail
+      curl --fail --silent --show-error -X POST \
+        -H "X-Publishing-Secret: ${CALLBACK_SECRET}" \
+        -H "Content-Type: application/json" \
+        --data "{\"state\":\"deploying\",\"workflowRunId\":\"${WORKFLOW_RUN_ID}\"}" \
+        "${API_ORIGIN}/api/v1/internal/publications/${PUBLICATION_ID}/attempts/${ATTEMPT_ID}/progress" || true
+      npx --yes wrangler@4 pages deploy apps/public/out --project-name "${PROJECT_NAME}"
+    displayName: Deploy static output to Cloudflare Pages
+    env:
+      API_ORIGIN: $(RESUME_API_ORIGIN)
+      CALLBACK_SECRET: $(RESUME_PUBLISHING_CALLBACK_SECRET)
+      PUBLICATION_ID: $(PUBLICATION_ID)
+      ATTEMPT_ID: $(ATTEMPT_ID)
+      WORKFLOW_RUN_ID: $(Build.BuildId)
+      CLOUDFLARE_API_TOKEN: $(CLOUDFLARE_API_TOKEN)
+      CLOUDFLARE_ACCOUNT_ID: $(CLOUDFLARE_ACCOUNT_ID)
+      PROJECT_NAME: $(CLOUDFLARE_PROJECT_NAME)
+
+  - bash: node scripts/create-publication-result.mjs
+    displayName: Build publication evidence
+    env:
+      PUBLICATION_ID: $(PUBLICATION_ID)
+      ATTEMPT_ID: $(ATTEMPT_ID)
+      DEPLOYMENT_URL: $(DEPLOYMENT_URL)
+      PROVIDER_DEPLOYMENT_ID: azure-pages-$(Build.BuildId)-$(System.JobAttempt)
+
+  - task: PublishPipelineArtifact@1
+    displayName: Retain public QA evidence
+    inputs:
+      targetPath: $(Build.SourcesDirectory)/artifacts
+      artifact: public-site-evidence-$(PUBLICATION_ID)
+      publishLocation: pipeline
+
+  - bash: |
+      set -euo pipefail
+      curl --fail --silent --show-error -X POST \
+        -H "X-Publishing-Secret: ${CALLBACK_SECRET}" \
+        -H "Content-Type: application/json" \
+        --data @artifacts/publication-result.json \
+        "${API_ORIGIN}/api/v1/internal/publications/${PUBLICATION_ID}/attempts/${ATTEMPT_ID}/result"
+    displayName: Mark publication successful
+    condition: succeeded()
+    continueOnError: true
+    env:
+      API_ORIGIN: $(RESUME_API_ORIGIN)
+      CALLBACK_SECRET: $(RESUME_PUBLISHING_CALLBACK_SECRET)
+      PUBLICATION_ID: $(PUBLICATION_ID)
+      ATTEMPT_ID: $(ATTEMPT_ID)
+
+  - bash: |
+      set -euo pipefail
+      curl --fail --silent --show-error -X POST \
+        -H "X-Publishing-Secret: ${CALLBACK_SECRET}" \
+        -H "Content-Type: application/json" \
+        --data '{"state":"failed","errorCode":"WORKFLOW_FAILED","errorSummary":"Azure Pipelines build, validation, or deployment failed. Inspect the pipeline logs."}' \
+        "${API_ORIGIN}/api/v1/internal/publications/${PUBLICATION_ID}/attempts/${ATTEMPT_ID}/result"
+    displayName: Mark publication failed
+    condition: failed()
+    continueOnError: true
+    env:
+      API_ORIGIN: $(RESUME_API_ORIGIN)
+      CALLBACK_SECRET: $(RESUME_PUBLISHING_CALLBACK_SECRET)
+      PUBLICATION_ID: $(PUBLICATION_ID)
+      ATTEMPT_ID: $(ATTEMPT_ID)

@@ -22,6 +22,39 @@ public sealed class PublicationReconcilerTests
     }
 
     [Fact]
+    public async Task Azure_dispatch_queues_pipeline_with_publication_variables()
+    {
+        Uri? capturedUri = null;
+        string? capturedBody = null;
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Publishing:Provider"] = "azure-devops",
+            ["AzureDevOps:Organization"] = "osama-flutter",
+            ["AzureDevOps:Project"] = "my_resume_backend",
+            ["AzureDevOps:PipelineId"] = "42",
+            ["AzureDevOps:Token"] = "test-token",
+            ["AzureDevOps:Ref"] = "main"
+        }).Build();
+        var dispatcher = new PublicationDispatcher(new HttpClient(new StubHandler(request =>
+        {
+            capturedUri = request.RequestUri;
+            capturedBody = request.Content?.ReadAsStringAsync().GetAwaiter().GetResult();
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("{}", Encoding.UTF8, "application/json") };
+        })), configuration);
+        var publicationId = Guid.NewGuid();
+        var attemptId = Guid.NewGuid();
+
+        var result = await dispatcher.DispatchAsync(publicationId, attemptId, TestContext.Current.CancellationToken);
+
+        Assert.True(result.Configured);
+        Assert.True(result.Succeeded);
+        Assert.Equal("azure", result.Provider);
+        Assert.Equal("https://dev.azure.com/osama-flutter/my_resume_backend/_apis/pipelines/42/runs?api-version=7.1", capturedUri!.AbsoluteUri);
+        Assert.Contains($"\"PUBLICATION_ID\":{{\"value\":\"{publicationId}\"}}", capturedBody!, StringComparison.Ordinal);
+        Assert.Contains($"\"ATTEMPT_ID\":{{\"value\":\"{attemptId}\"}}", capturedBody!, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Recovers_a_successful_callback_body_from_the_workflow_evidence_artifact()
     {
         var publication = new Publication { SiteId = Guid.NewGuid(), Purpose = PublicationPurpose.SitePublish };

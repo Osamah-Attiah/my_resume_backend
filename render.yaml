@@ -20,6 +20,18 @@ services:
         sync: false
       - key: Publishing__CallbackSecret
         generateValue: true
+      - key: Publishing__Provider
+        value: azure-devops
+      - key: AzureDevOps__Organization
+        sync: false
+      - key: AzureDevOps__Project
+        sync: false
+      - key: AzureDevOps__PipelineId
+        sync: false
+      - key: AzureDevOps__Token
+        sync: false
+      - key: AzureDevOps__Ref
+        value: main
       - key: GitHub__Owner
         sync: false
       - key: GitHub__PublishRepository

@@ -17,12 +17,14 @@ using Resume.Infrastructure;
 
 namespace Resume.Api;
 
-public sealed record DispatchResult(bool Configured, bool Succeeded, string? Error);
+public sealed record DispatchResult(bool Configured, bool Succeeded, string? Error, string? Provider = null);
 
 public sealed class PublicationDispatcher(HttpClient client, IConfiguration configuration)
 {
     public bool IsConfigured(PublicationPurpose purpose)
     {
+        if (UsesAzureDevOps(purpose)) return IsAzureDevOpsConfigured();
+
         var owner = configuration["GitHub:Owner"] ?? configuration["Publishing:GitHubOwner"];
         var repository = purpose == PublicationPurpose.PrivatePdfExport
             ? configuration["GitHub:PrivateExportRepository"]
@@ -37,12 +39,14 @@ public sealed class PublicationDispatcher(HttpClient client, IConfiguration conf
 
     public async Task<DispatchResult> DispatchAsync(Guid publicationId, Guid attemptId, CancellationToken ct, PublicationPurpose purpose = PublicationPurpose.SitePublish)
     {
+        if (UsesAzureDevOps(purpose)) return await DispatchAzureDevOpsAsync(publicationId, attemptId, ct);
+
         var owner = configuration["GitHub:Owner"] ?? configuration["Publishing:GitHubOwner"];
         var repository = purpose == PublicationPurpose.PrivatePdfExport
             ? configuration["GitHub:PrivateExportRepository"]
             : configuration["GitHub:PublishRepository"] ?? configuration["Publishing:GitHubRepository"];
         var token = configuration["GitHub:Token"] ?? configuration["Publishing:GitHubToken"];
-        if (!IsConfigured(purpose)) return new(false, false, null);
+        if (!IsConfigured(purpose)) return new(false, false, null, "github");
         var workflow = purpose == PublicationPurpose.PrivatePdfExport ? configuration["GitHub:PrivateExportWorkflow"] ?? "export-private-pdf.yml" : configuration["GitHub:PublishWorkflow"] ?? configuration["Publishing:GitHubWorkflow"] ?? "publish-site.yml";
         var gitRef = purpose == PublicationPurpose.PrivatePdfExport ? configuration["GitHub:PrivateExportRef"] ?? "main" : configuration["GitHub:PublishRef"] ?? configuration["Publishing:GitHubRef"] ?? "main";
         var uri = $"https://api.github.com/repos/{Uri.EscapeDataString(owner!)}/{Uri.EscapeDataString(repository!)}/actions/workflows/{Uri.EscapeDataString(workflow)}/dispatches";
@@ -59,13 +63,59 @@ public sealed class PublicationDispatcher(HttpClient client, IConfiguration conf
         try
         {
             using var response = await client.SendAsync(request, ct);
-            if (response.IsSuccessStatusCode) return new(true, true, null);
+            if (response.IsSuccessStatusCode) return new(true, true, null, "github");
             var body = await response.Content.ReadAsStringAsync(ct);
-            return new(true, false, $"GitHub returned {(int)response.StatusCode}: {body[..Math.Min(body.Length, 300)]}");
+            return new(true, false, $"GitHub returned {(int)response.StatusCode}: {body[..Math.Min(body.Length, 300)]}", "github");
         }
         catch (HttpRequestException exception)
         {
-            return new(true, false, exception.Message);
+            return new(true, false, exception.Message, "github");
+        }
+    }
+
+    private bool UsesAzureDevOps(PublicationPurpose purpose) => purpose == PublicationPurpose.SitePublish && string.Equals(configuration["Publishing:Provider"], "azure-devops", StringComparison.OrdinalIgnoreCase);
+
+    private bool IsAzureDevOpsConfigured() =>
+        !string.IsNullOrWhiteSpace(configuration["AzureDevOps:Organization"]) &&
+        !string.IsNullOrWhiteSpace(configuration["AzureDevOps:Project"]) &&
+        long.TryParse(configuration["AzureDevOps:PipelineId"], out var pipelineId) && pipelineId > 0 &&
+        !string.IsNullOrWhiteSpace(configuration["AzureDevOps:Token"]);
+
+    private async Task<DispatchResult> DispatchAzureDevOpsAsync(Guid publicationId, Guid attemptId, CancellationToken ct)
+    {
+        if (!IsAzureDevOpsConfigured()) return new(false, false, null, "azure");
+
+        var organization = configuration["AzureDevOps:Organization"]!;
+        var project = configuration["AzureDevOps:Project"]!;
+        var pipelineId = configuration["AzureDevOps:PipelineId"]!;
+        var token = configuration["AzureDevOps:Token"]!;
+        var gitRef = configuration["AzureDevOps:Ref"] ?? "main";
+        var refName = gitRef.StartsWith("refs/", StringComparison.Ordinal) ? gitRef : $"refs/heads/{gitRef}";
+        var variables = new Dictionary<string, object?>
+        {
+            ["PUBLICATION_ID"] = new { value = publicationId.ToString() },
+            ["ATTEMPT_ID"] = new { value = attemptId.ToString() }
+        };
+        var body = new
+        {
+            resources = new { repositories = new { self = new { refName } } },
+            variables
+        };
+        var uri = $"https://dev.azure.com/{Uri.EscapeDataString(organization)}/{Uri.EscapeDataString(project)}/_apis/pipelines/{Uri.EscapeDataString(pipelineId)}/runs?api-version=7.1";
+        using var request = new HttpRequestMessage(HttpMethod.Post, uri) { Content = JsonContent.Create(body) };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($":{token}")));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.UserAgent.ParseAdd("terra-resume-publisher/1.0");
+        try
+        {
+            using var response = await client.SendAsync(request, ct);
+            if (response.IsSuccessStatusCode) return new(true, true, null, "azure");
+            var bodyText = await response.Content.ReadAsStringAsync(ct);
+            return new(true, false, $"Azure DevOps returned {(int)response.StatusCode}: {bodyText[..Math.Min(bodyText.Length, 300)]}", "azure");
+        }
+        catch (HttpRequestException exception)
+        {
+            return new(true, false, exception.Message, "azure");
         }
     }
 

@@ -48,7 +48,7 @@ const apiErrorCopy: Record<string, [string, string]> = {
   EXPORT_ACTIVE: ["يوجد تصدير PDF قيد التنفيذ لهذا البروفايل.", "A private PDF export is already active for this profile."],
   ARTIFACT_EXPIRED: ["انتهت صلاحية ملف PDF الخاص؛ أنشئه مرة أخرى.", "The private PDF artifact expired; generate it again."],
   ARTIFACT_DOWNLOAD_FAILED: ["تعذر تنزيل ملف PDF الخاص.", "The private PDF artifact could not be downloaded."],
-  WORKFLOW_DISPATCH_FAILED: ["تعذر إرسال سير العمل إلى GitHub.", "The GitHub workflow could not be dispatched."],
+  WORKFLOW_DISPATCH_FAILED: ["تعذر إرسال سير عمل النشر.", "The publishing workflow could not be dispatched."],
   RECONCILE_EVIDENCE_INVALID: ["فشل التحقق من نتيجة سير العمل.", "The workflow result evidence failed validation."],
   RETRY_NOT_ALLOWED: ["لا يمكن إعادة محاولة هذا النشر في حالته الحالية.", "This publication cannot be retried in its current state."],
   STALE_PUBLICATION_RESULT: ["يوجد نشر أحدث لهذا الموقع.", "A newer publication already exists for this site."],
