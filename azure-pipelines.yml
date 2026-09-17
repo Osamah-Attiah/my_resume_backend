@@ -107,7 +107,9 @@ steps:
         -H "Content-Type: application/json" \
         --data "{\"state\":\"deploying\",\"workflowRunId\":\"${WORKFLOW_RUN_ID}\"}" \
         "${API_ORIGIN}/api/v1/internal/publications/${PUBLICATION_ID}/attempts/${ATTEMPT_ID}/progress" || true
-      npx --yes wrangler@4 pages deploy apps/public/out --project-name "${PROJECT_NAME}"
+      # Cloudflare treats an upload without --branch as a Preview/HEAD deployment.
+      # The public Pages domain is attached to the main production branch.
+      npx --yes wrangler@4 pages deploy apps/public/out --project-name "${PROJECT_NAME}" --branch main
     displayName: Deploy static output to Cloudflare Pages
     env:
       API_ORIGIN: $(RESUME_API_ORIGIN)
