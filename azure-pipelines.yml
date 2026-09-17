@@ -46,6 +46,7 @@ steps:
 
   - bash: |
       set -euo pipefail
+      echo "Callback target: ${API_ORIGIN}/api/v1/internal/publications/${PUBLICATION_ID}/attempts/${ATTEMPT_ID}/progress"
       curl --fail-with-body --silent --show-error -X POST \
         --dump-header - \
         -H "X-Publishing-Secret: ${CALLBACK_SECRET}" \
