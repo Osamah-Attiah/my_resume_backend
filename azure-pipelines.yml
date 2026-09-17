@@ -54,7 +54,7 @@ steps:
     displayName: Register pipeline run
     env:
       API_ORIGIN: $(RESUME_API_ORIGIN)
-      CALLBACK_SECRET: $(RESUME_PUBLISHING_CALLBACK_SECRET)
+      CALLBACK_SECRET: $(Publishing__CallbackSecret)
       PUBLICATION_ID: $(PUBLICATION_ID)
       ATTEMPT_ID: $(ATTEMPT_ID)
       WORKFLOW_RUN_ID: $(Build.BuildId)
@@ -71,7 +71,7 @@ steps:
     displayName: Fetch immutable publication snapshot
     env:
       API_ORIGIN: $(RESUME_API_ORIGIN)
-      CALLBACK_SECRET: $(RESUME_PUBLISHING_CALLBACK_SECRET)
+      CALLBACK_SECRET: $(Publishing__CallbackSecret)
       PUBLICATION_ID: $(PUBLICATION_ID)
 
   - bash: |
@@ -89,7 +89,7 @@ steps:
     env:
       PUBLIC_SNAPSHOT_PATH: $(Build.SourcesDirectory)/artifacts/publication.json
       API_ORIGIN: $(RESUME_API_ORIGIN)
-      CALLBACK_SECRET: $(RESUME_PUBLISHING_CALLBACK_SECRET)
+      CALLBACK_SECRET: $(Publishing__CallbackSecret)
       PUBLICATION_ID: $(PUBLICATION_ID)
       ATTEMPT_ID: $(ATTEMPT_ID)
       WORKFLOW_RUN_ID: $(Build.BuildId)
@@ -111,7 +111,7 @@ steps:
     displayName: Deploy static output to Cloudflare Pages
     env:
       API_ORIGIN: $(RESUME_API_ORIGIN)
-      CALLBACK_SECRET: $(RESUME_PUBLISHING_CALLBACK_SECRET)
+      CALLBACK_SECRET: $(Publishing__CallbackSecret)
       PUBLICATION_ID: $(PUBLICATION_ID)
       ATTEMPT_ID: $(ATTEMPT_ID)
       WORKFLOW_RUN_ID: $(Build.BuildId)
@@ -146,7 +146,7 @@ steps:
     continueOnError: true
     env:
       API_ORIGIN: $(RESUME_API_ORIGIN)
-      CALLBACK_SECRET: $(RESUME_PUBLISHING_CALLBACK_SECRET)
+      CALLBACK_SECRET: $(Publishing__CallbackSecret)
       PUBLICATION_ID: $(PUBLICATION_ID)
       ATTEMPT_ID: $(ATTEMPT_ID)
 
@@ -162,6 +162,6 @@ steps:
     continueOnError: true
     env:
       API_ORIGIN: $(RESUME_API_ORIGIN)
-      CALLBACK_SECRET: $(RESUME_PUBLISHING_CALLBACK_SECRET)
+      CALLBACK_SECRET: $(Publishing__CallbackSecret)
       PUBLICATION_ID: $(PUBLICATION_ID)
       ATTEMPT_ID: $(ATTEMPT_ID)
