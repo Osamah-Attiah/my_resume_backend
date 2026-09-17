@@ -930,7 +930,7 @@ public static class ApiEndpoints
         internalApi.MapPost("/publications/{id:guid}/attempts/{attemptId:guid}/progress", async (Guid id, Guid attemptId, AttemptProgress request, ResumeDbContext db, CancellationToken ct) =>
         {
             if (request.State is not (PublicationState.Building or PublicationState.Validating or PublicationState.Deploying) || !long.TryParse(request.WorkflowRunId, out _)) return Results.BadRequest();
-            var publication = await db.Publications.Include(x => x.Attempts).SingleOrDefaultAsync(x => x.Id == id, ct); if (publication is null) return Results.NotFound();
+            var publication = await db.Publications.Include(x => x.Attempts).SingleOrDefaultAsync(x => x.Id == id, ct); if (publication is null) return Results.NotFound(new { code = "PUBLICATION_NOT_FOUND", publicationId = id, attemptId });
             var attempt = publication.Attempts.SingleOrDefault(x => x.Id == attemptId); if (attempt is null || attempt.AttemptNumber != publication.Attempts.Max(x => x.AttemptNumber) || publication.State is PublicationState.Succeeded or PublicationState.Failed or PublicationState.Cancelled) return Results.Conflict();
             attempt.WorkflowRunId = request.WorkflowRunId; attempt.StartedAt ??= DateTimeOffset.UtcNow; attempt.State = request.State; publication.State = request.State;
             await db.SaveChangesAsync(ct); return Results.NoContent();
@@ -938,7 +938,7 @@ public static class ApiEndpoints
         internalApi.MapPost("/publications/{id:guid}/attempts/{attemptId:guid}/result", async (Guid id, Guid attemptId, AttemptResult request, ResumeDbContext db, CancellationToken ct) =>
         {
             if (request.State is not (PublicationState.Succeeded or PublicationState.Failed or PublicationState.Cancelled)) return Results.BadRequest();
-            var publication = await db.Publications.Include(x => x.Attempts).Include(x => x.Artifacts).SingleOrDefaultAsync(x => x.Id == id, ct); if (publication is null) return Results.NotFound();
+            var publication = await db.Publications.Include(x => x.Attempts).Include(x => x.Artifacts).SingleOrDefaultAsync(x => x.Id == id, ct); if (publication is null) return Results.NotFound(new { code = "PUBLICATION_NOT_FOUND", publicationId = id, attemptId });
             var attempt = publication.Attempts.SingleOrDefault(x => x.Id == attemptId); if (attempt is null || attempt.AttemptNumber != publication.Attempts.Max(x => x.AttemptNumber)) return Results.Conflict();
             var invalid = await ValidateAttemptResult(publication, request, db, ct); if (invalid is not null) return invalid;
             await ApplyPublicationResult(publication, attempt, request, db, ct);
