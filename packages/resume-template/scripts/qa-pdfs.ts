@@ -64,5 +64,9 @@ function containsExtractedToken(text: string, token: string) {
   if (text.includes(normalized)) return true;
   if (!/[\u0600-\u06ff]/u.test(token)) return false;
   const words = normalized.split(" ").filter(Boolean);
-  return words.length > 1 && text.includes([...words].reverse().join(" "));
+  if (words.length <= 1) return false;
+  if (text.includes([...words].reverse().join(" "))) return true;
+  // Chromium's PDF text extraction may move an embedded LTR run (for example
+  // "CI/CD") to the end of an RTL line while keeping every word intact.
+  return words.every(word => text.includes(word));
 }
