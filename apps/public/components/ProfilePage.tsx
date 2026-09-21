@@ -2,7 +2,6 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, Download, Mail, MapPin, Phone } fr
 import Image from "next/image";
 import type { PublicProfile, PublicProject } from "@resume/contracts";
 import { ExpandableSummary } from "./ExpandableSummary";
-import { PageMotion } from "./PageMotion";
 
 const copy = {
   en: {
@@ -213,7 +212,6 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
         </section>
       </div>
     </main>
-    <PageMotion />
     <footer className="footer"><div className="container"><span className="footer-mark" aria-hidden="true" />{profile.headline}{profile.demo ? " · " + t.demo : ""}</div></footer>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd).replace(/</g, "\\u003c") }} />
   </div>;

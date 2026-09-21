@@ -1,7 +1,4 @@
-"use client";
-
 import { ChevronDown } from "lucide-react";
-import { useId, useState } from "react";
 
 export function ExpandableSummary({
   preview,
@@ -14,13 +11,12 @@ export function ExpandableSummary({
   moreLabel: string;
   lessLabel: string;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const contentId = useId();
+  const contentId = "about-more-content";
 
-  return <div className={"about-summary-block" + (expanded ? " is-expanded" : "")}>
+  return <div className="about-summary-block" data-expandable-summary>
     <p className="about-lead">{preview}</p>
     {remainder && <>
-      <div id={contentId} className="about-more-content" aria-hidden={!expanded}>
+      <div id={contentId} className="about-more-content" aria-hidden="true">
         <div className="about-more-content-inner">
           <p className="about-lead about-lead-more">{remainder}</p>
         </div>
@@ -28,9 +24,8 @@ export function ExpandableSummary({
       <button
         type="button"
         className="about-more-toggle"
-        aria-expanded={expanded}
+        aria-expanded="false"
         aria-controls={contentId}
-        onClick={() => setExpanded(value => !value)}
       >
         <span className="about-more-control">
           <span className="about-more-labels">

@@ -11,5 +11,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" dir="ltr" suppressHydrationWarning><body>{children}</body></html>;
+  return <html lang="en" dir="ltr" suppressHydrationWarning><body>{children}<script src="/site.js" defer data-static-runtime /></body></html>;
 }

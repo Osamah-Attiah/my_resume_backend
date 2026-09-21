@@ -22,9 +22,9 @@ for (const file of await htmlFiles(resolve(out, "en"))) {
   await writeFile(file, html.replace(/<html lang="en"(?: dir="[^"]+")?[^>]*>/, '<html lang="en" dir="ltr">'));
 }
 
-// Published pages contain only ordinary links and CSS. Removing Next's hydration
-// payload keeps the static site backend-independent and avoids shipping a React
-// runtime that cannot add behavior. Structured data scripts are preserved.
+// Published pages use a tiny framework-independent runtime for progressive
+// enhancement. Next's hydration payload is removed; structured data and the
+// static runtime are preserved.
 for (const file of await htmlFiles(out)) {
   if (file.startsWith(arabicRoot) || file.startsWith(resolve(out, "en"))) continue;
   await writeFile(file, stripHydration(await readFile(file, "utf8")));
@@ -33,8 +33,8 @@ for (const file of await htmlFiles(out)) {
 function stripHydration(html) {
   const result = html
     .replace(/<link\b(?=[^>]*\brel="preload")(?=[^>]*\bas="script")[^>]*>/gi, "")
-    .replace(/<script\b(?![^>]*\btype="application\/ld\+json")[^>]*>[\s\S]*?<\/script>/gi, "");
-  if (/<script\b(?![^>]*\btype="application\/ld\+json")/i.test(result)) {
+    .replace(/<script\b(?![^>]*\b(?:type="application\/ld\+json"|data-static-runtime))[^>]*>[\s\S]*?<\/script>/gi, "");
+  if (/<script\b(?![^>]*\b(?:type="application\/ld\+json"|data-static-runtime))/i.test(result)) {
     throw new Error("Unexpected executable script remained in static HTML");
   }
   return result;
