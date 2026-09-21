@@ -35,6 +35,8 @@ const copy = {
     openSource: "Open source",
     freelance: "Freelance",
     employment: "Professional work",
+    seeMore: "See more",
+    seeLess: "See less",
     present: "Present"
   },
   ar: {
@@ -68,6 +70,8 @@ const copy = {
     openSource: "مفتوح المصدر",
     freelance: "عمل حر",
     employment: "خبرة مهنية",
+    seeMore: "عرض المزيد",
+    seeLess: "عرض أقل",
     present: "حتى الآن"
   }
 } as const;
@@ -96,6 +100,15 @@ function countLabel(locale: "ar" | "en", value: number, kind: CountKind) {
   const forms = ar[kind];
   const word = value === 1 ? forms.one : value === 2 ? forms.two : value >= 3 && value <= 10 ? forms.few : value >= 11 && value <= 99 ? forms.many : forms.other;
   return `${value} ${word}`;
+}
+
+function splitSummary(summary: string) {
+  const previewLength = 520;
+  if (summary.length <= previewLength) return { preview: summary.trim(), remainder: "" };
+  const boundary = summary.lastIndexOf(" ", previewLength);
+  const nextBoundary = summary.indexOf(" ", previewLength);
+  const splitAt = boundary > 300 ? boundary : nextBoundary > 0 ? nextBoundary : summary.length;
+  return { preview: summary.slice(0, splitAt).trim(), remainder: summary.slice(splitAt).trim() };
 }
 
 export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: PublicProfile; baseUrl: string; isDefault?: boolean }) {
@@ -207,6 +220,7 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
 
 function AboutSection({ profile, labels, number }: { profile: PublicProfile; labels: Labels; number: number }) {
   const portraitAlt = profile.locale === "ar" ? `صورة شخصية لـ ${profile.fullName}` : `Portrait of ${profile.fullName}`;
+  const summary = splitSummary(profile.summary);
   return <section id="about" className="section about-section" data-section="about" aria-labelledby="about-title" data-reveal="about">
     <div className="section-heading about-section-heading"><div className="section-index-block"><span className="section-number" aria-hidden="true">{String(number).padStart(2, "0")}</span><span className="section-marker" aria-hidden="true">/</span></div><div><p className="section-kicker">{labels.personalDetails}</p><h2 id="about-title">{labels.aboutMe}</h2></div></div>
     <div className="about-panel">
@@ -215,7 +229,8 @@ function AboutSection({ profile, labels, number }: { profile: PublicProfile; lab
       </figure>
       <div className="about-copy">
         <div className="about-copy-topline"><span className="about-copy-label">{labels.aboutMe}</span><h3 className="about-name">{profile.fullName}</h3><p className="about-copy-status"><bdi>{profile.headline}</bdi></p></div>
-        <p className="about-lead">{profile.summary}</p>
+        <p className="about-lead">{summary.preview}</p>
+        {summary.remainder && <details className="about-more"><summary className="about-more-toggle"><span className="about-more-closed">{labels.seeMore}</span><span className="about-more-open">{labels.seeLess}</span></summary><p className="about-lead about-lead-more">{summary.remainder}</p></details>}
         <ul className="about-details" aria-label={labels.personalDetails}>
           {profile.location && <li><MapPin size={17} aria-hidden="true" /><bdi>{profile.location}</bdi></li>}
           {profile.email && <li><a href={"mailto:" + profile.email}><Mail size={17} aria-hidden="true" /><bdi>{profile.email}</bdi></a></li>}
