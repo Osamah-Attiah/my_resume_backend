@@ -22,6 +22,22 @@ export function PageMotion() {
       });
     };
 
+    const activeSectionAtMarker = () => {
+      const marker = Math.min(window.innerHeight * 0.34, 280);
+      let activeSection: string | undefined;
+      let passedSection: string | undefined;
+
+      sections.forEach(section => {
+        const sectionName = section.dataset.section;
+        if (!sectionName) return;
+        const bounds = section.getBoundingClientRect();
+        if (bounds.top <= marker && bounds.bottom >= marker) activeSection = sectionName;
+        if (bounds.top <= marker) passedSection = sectionName;
+      });
+
+      return activeSection ?? passedSection ?? sections[0]?.dataset.section;
+    };
+
     const updateScrollState = () => {
       frame = 0;
       const scrollableHeight = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
@@ -31,11 +47,7 @@ export function PageMotion() {
         value.textContent = Math.round(progress * 100) + "%";
       });
 
-      const marker = window.innerHeight * 0.34;
-      let activeSection = sections[0]?.dataset.section;
-      sections.forEach(section => {
-        if (section.getBoundingClientRect().top <= marker) activeSection = section.dataset.section;
-      });
+      const activeSection = activeSectionAtMarker();
       sideIndex?.classList.toggle("is-dark", Boolean(activeSection && darkSections.has(activeSection)));
       setActiveSection(activeSection);
     };
@@ -44,6 +56,14 @@ export function PageMotion() {
       if (frame) return;
       frame = window.requestAnimationFrame(updateScrollState);
     };
+
+    const onRailClick = (event: Event) => {
+      const link = event.currentTarget as HTMLAnchorElement;
+      setActiveSection(link.dataset.indexTarget);
+      onScroll();
+    };
+
+    railLinks.forEach(link => link.addEventListener("click", onRailClick));
 
     root.dataset.motion = "ready";
 
@@ -65,6 +85,7 @@ export function PageMotion() {
 
       return () => {
         observer.disconnect();
+        railLinks.forEach(link => link.removeEventListener("click", onRailClick));
         window.removeEventListener("scroll", onScroll);
         window.removeEventListener("resize", onScroll);
         if (frame) window.cancelAnimationFrame(frame);
@@ -78,6 +99,7 @@ export function PageMotion() {
     updateScrollState();
 
     return () => {
+      railLinks.forEach(link => link.removeEventListener("click", onRailClick));
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
       if (frame) window.cancelAnimationFrame(frame);

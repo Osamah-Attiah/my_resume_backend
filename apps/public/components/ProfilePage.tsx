@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, ArrowUpRight, Download, MapPin } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Download, Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
 import type { PublicProfile, PublicProject } from "@resume/contracts";
 import { PageMotion } from "./PageMotion";
@@ -22,6 +22,8 @@ const copy = {
     certifications: "Certifications",
     languages: "Languages",
     details: "More context",
+    aboutMe: "About me",
+    personalDetails: "Personal details",
     contactTitle: "Let's build dependable software.",
     view: "View project",
     code: "View code",
@@ -52,6 +54,8 @@ const copy = {
     certifications: "الشهادات",
     languages: "اللغات",
     details: "معلومات إضافية",
+    aboutMe: "نبذة عني",
+    personalDetails: "بيانات شخصية",
     contactTitle: "لنبنِ برمجيات موثوقة.",
     view: "تفاصيل المشروع",
     code: "عرض الكود",
@@ -97,7 +101,6 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
   const other = profile.locale === "ar" ? "en" : "ar";
   const sections = profile.sections?.length ? profile.sections : ["summary", "skills", "projects", "experience", "education", "certifications", "languages"];
   const enabled = new Set(sections);
-  const first = enabled.has("projects") ? profile.projects[0] : undefined;
   const skills = Map.groupBy(profile.skills, item => item.category);
   const preferredOrder = ["projects", "experience", "skills", "education", "certifications", "languages"];
   const contentSections = [...preferredOrder.filter(key => enabled.has(key)), ...sections.filter(key => key !== "summary" && !preferredOrder.includes(key))];
@@ -111,13 +114,8 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
   const contactNumber = contentSections.length + 1;
   const personId = baseUrl + "/#person";
   const websiteId = baseUrl + "/#website";
-  const facts = [
-    { value: profile.projects.length, label: countLabel(profile.locale, profile.projects.length, "projects") },
-    { value: profile.experiences.length, label: countLabel(profile.locale, profile.experiences.length, "roles") },
-    { value: skills.size, label: countLabel(profile.locale, skills.size, "disciplines") }
-  ].filter(item => item.value > 0);
   const railItems = [
-    { target: "intro", href: "#main", label: t.intro, visible: true },
+    { target: "intro", href: "#intro", label: t.intro, visible: true },
     ...contentSections.filter(key => key === "projects" || key === "experience" || key === "skills").map(key => key === "projects"
       ? { target: "work", href: "#work", label: t.works, visible: profile.projects.length > 0 }
       : key === "experience"
@@ -143,8 +141,8 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
         <a className="wordmark" href={profilePath}><span className="wordmark-mark" aria-hidden="true" /><span>{profile.fullName}</span></a>
         <span className="nav-context">{t.profile}</span>
         <div className="nav-links">
-          <a href="#work">{t.works}</a>
-          <a href="#about">{t.about}</a>
+          {profile.projects.length > 0 && <a href="#work">{t.works}</a>}
+          {profile.skills.length > 0 && <a href="#about">{t.about}</a>}
           <a href="#contact">{t.contact}</a>
           <a className="locale-switch" href={otherPath} hrefLang={other} aria-label={other === "ar" ? "العربية" : "English"}>{other === "ar" ? "عر" : "EN"}</a>
         </div>
@@ -162,34 +160,33 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
       </aside>
 
       <div className="page-column">
-        <section className="hero hero-stage" aria-labelledby="profile-name" data-section="intro" data-reveal="hero">
+        <section id="intro" className="hero hero-stage" aria-labelledby="profile-name" data-section="intro" data-reveal="hero">
           <span className="hero-stage-index">01 / {t.profile}</span>
           <div className="hero-copy">
-            <p className="eyebrow">{profile.locale === "ar" ? "معرض أعمال برمجية" : "Software portfolio"}{profile.demo ? ` · ${profile.locale === "ar" ? "تجريبي" : "Demo"}` : ""}</p>
+            <p className="eyebrow">{profile.locale === "ar" ? "ملف شخصي" : "Personal profile"}{profile.demo ? ` · ${profile.locale === "ar" ? "تجريبي" : "Demo"}` : ""}</p>
             <h1 id="profile-name">{profile.fullName}</h1>
             <p className="headline">{profile.headline}</p>
-            {profile.location && <p className="hero-location"><MapPin size={16} aria-hidden="true" /><span>{profile.location}</span></p>}
-            {enabled.has("summary") && <p className="summary">{profile.summary}</p>}
             <div className="hero-actions">
-              {first && <a className="button button-primary" href="#work">{t.works}<Arrow size={18} aria-hidden="true" /></a>}
+              {profile.projects.length > 0 && <a className="button button-primary" href="#work">{t.works}<Arrow size={18} aria-hidden="true" /></a>}
               <a className="button button-secondary" href={"/resumes/" + profile.slug + "/" + profile.locale + "/resume.pdf"} download>{t.resume}<Download size={18} aria-hidden="true" /></a>
             </div>
-            {first && <a className="hero-scroll" href="#work"><span className="hero-scroll-line" aria-hidden="true" />{t.scroll}</a>}
+            {profile.projects.length > 0 && <a className="hero-scroll" href="#work"><span className="hero-scroll-line" aria-hidden="true" />{t.scroll}</a>}
           </div>
-          {first && <aside className={"hero-proof " + (first.cover ? "has-image" : "")} aria-label={t.spotlight} data-reveal="hero-proof">
-            {first.cover && <Image className="hero-proof-image" src={first.cover.src} alt={first.cover.alt} fill priority sizes="(max-width: 840px) 100vw, 42vw" />}
-            <span className="hero-proof-scrim" aria-hidden="true" />
-            <div className="proof-top"><span className="proof-label">01 — {projectKindLabel(first, t)}</span>{first.role && <span className="proof-role">{first.role}</span>}</div>
-            <div className="proof-content"><span className="proof-overline">{t.spotlight}</span><h2 className="proof-title">{first.name}</h2><p className="tech-line"><bdi>{first.skills.join(" · ")}</bdi></p></div>
-            <a className="proof-link" href="#work"><span>{t.works}</span><Arrow size={18} aria-hidden="true" /></a>
-          </aside>}
-          {facts.length > 0 && <div className="hero-facts" aria-label={t.profile}>{facts.map(fact => <div className="hero-fact" key={fact.label}><strong>{fact.value}</strong><span>{fact.label}</span></div>)}</div>}
+          <aside className="hero-personal-panel" aria-label={t.personalDetails} data-reveal="hero-personal">
+            <p className="hero-personal-label">{t.aboutMe}</p>
+            {enabled.has("summary") && <p className="hero-personal-summary">{profile.summary}</p>}
+            <div className="hero-personal-details">
+              {profile.location && <span className="hero-personal-item"><MapPin size={16} aria-hidden="true" /><bdi>{profile.location}</bdi></span>}
+              {profile.email && <a className="hero-personal-item" href={"mailto:" + profile.email}><Mail size={16} aria-hidden="true" /><bdi>{profile.email}</bdi></a>}
+              {profile.phone && <a className="hero-personal-item" href={"tel:" + profile.phone}><Phone size={16} aria-hidden="true" /><bdi>{profile.phone}</bdi></a>}
+            </div>
+          </aside>
         </section>
 
         {contentSections.map((key, index) => {
           if (key === firstSecondary) return <DetailsSection key="details" profile={profile} labels={t} number={index + 1} sectionKeys={secondarySections} />;
           if (secondaryKeys.includes(key)) return null;
-          if (key === "projects" && first) return <ProjectSection key={key} profile={profile} labels={t} number={index + 1} Arrow={Arrow} />;
+          if (key === "projects" && profile.projects.length) return <ProjectSection key={key} profile={profile} labels={t} number={index + 1} Arrow={Arrow} />;
           if (key === "skills" && profile.skills.length) return <SkillsSection key={key} locale={profile.locale} labels={t} skills={skills} number={index + 1} />;
           return <ProfessionalSection key={key} profile={profile} labels={t} sectionKey={key} number={index + 1} />;
         })}
@@ -239,8 +236,8 @@ function ProjectVisual({ project, index, labels }: { project: PublicProject; ind
   return <div className={"project-visual project-visual-tone-" + (index % 3) + " " + (project.cover ? "has-image" : "no-image")}>
     {project.cover && <Image className="project-image" src={project.cover.src} alt={project.cover.alt} fill priority={index === 0} sizes="(max-width: 920px) 100vw, 58vw" />}
     <span className="visual-overlay" aria-hidden="true" />
-    <span className="visual-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-    <div className="visual-content"><span className="visual-type">{projectKindLabel(project, labels)}</span><span className="visual-name" aria-hidden="true">{project.name}</span>{note && <p>{note}</p>}</div>
+    <div className="visual-topline"><span className="visual-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><span className="visual-type">{projectKindLabel(project, labels)}</span></div>
+    <div className="visual-content"><span className="visual-name" aria-hidden="true">{project.name}</span>{note && <p>{note}</p>}</div>
     <div className="visual-foot"><bdi>{project.skills.slice(0, 3).join(" · ")}</bdi><ArrowUpRight size={16} aria-hidden="true" /></div>
   </div>;
 }
