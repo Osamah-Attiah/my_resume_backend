@@ -23,6 +23,7 @@ const copy = {
     languages: "Languages",
     details: "More context",
     aboutMe: "About me",
+    capabilities: "Capabilities",
     personalDetails: "Personal details",
     contactTitle: "Let's build dependable software.",
     view: "View project",
@@ -55,6 +56,7 @@ const copy = {
     languages: "اللغات",
     details: "معلومات إضافية",
     aboutMe: "نبذة عني",
+    capabilities: "القدرات التقنية",
     personalDetails: "بيانات شخصية",
     contactTitle: "لنبنِ برمجيات موثوقة.",
     view: "تفاصيل المشروع",
@@ -107,20 +109,23 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
   const secondaryKeys = ["education", "certifications", "languages"];
   const secondarySections = contentSections.filter(key => secondaryKeys.includes(key));
   const firstSecondary = secondarySections[0];
+  const hasAboutSection = enabled.has("summary") && profile.summary.trim().length > 0;
+  const contentSectionOffset = hasAboutSection ? 2 : 1;
   const Arrow = profile.direction === "rtl" ? ArrowLeft : ArrowRight;
   const profilePath = isDefault ? "/" + profile.locale + "/" : "/" + profile.locale + "/p/" + profile.slug + "/";
   const otherPath = isDefault ? "/" + other + "/" : "/" + other + "/p/" + profile.slug + "/";
   const canonical = profile.seo.canonical ?? baseUrl + profilePath;
-  const contactNumber = contentSections.length + 1;
+  const contactNumber = contentSections.length + contentSectionOffset + 1;
   const personId = baseUrl + "/#person";
   const websiteId = baseUrl + "/#website";
   const railItems = [
     { target: "intro", href: "#intro", label: t.intro, visible: true },
+    ...(hasAboutSection ? [{ target: "about", href: "#about", label: t.aboutMe, visible: true }] : []),
     ...contentSections.filter(key => key === "projects" || key === "experience" || key === "skills").map(key => key === "projects"
       ? { target: "work", href: "#work", label: t.works, visible: profile.projects.length > 0 }
       : key === "experience"
         ? { target: "experience", href: "#experience", label: t.experience, visible: profile.experiences.length > 0 }
-        : { target: "about", href: "#about", label: t.about, visible: profile.skills.length > 0 }),
+        : { target: "skills", href: "#skills", label: t.skills, visible: profile.skills.length > 0 }),
     ...(secondarySections.length > 0 ? [{ target: "details", href: "#details", label: t.details, visible: true }] : []),
     { target: "contact", href: "#contact", label: t.contact, visible: true }
   ].filter(item => item.visible);
@@ -142,7 +147,7 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
         <span className="nav-context">{t.profile}</span>
         <div className="nav-links">
           {profile.projects.length > 0 && <a href="#work">{t.works}</a>}
-          {profile.skills.length > 0 && <a href="#about">{t.about}</a>}
+          {hasAboutSection && <a href="#about">{t.about}</a>}
           <a href="#contact">{t.contact}</a>
           <a className="locale-switch" href={otherPath} hrefLang={other} aria-label={other === "ar" ? "العربية" : "English"}>{other === "ar" ? "عر" : "EN"}</a>
         </div>
@@ -172,23 +177,16 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
             </div>
             {profile.projects.length > 0 && <a className="hero-scroll" href="#work"><span className="hero-scroll-line" aria-hidden="true" />{t.scroll}</a>}
           </div>
-          <aside className="hero-personal-panel" aria-label={t.personalDetails} data-reveal="hero-personal">
-            <p className="hero-personal-label">{t.aboutMe}</p>
-            {enabled.has("summary") && <p className="hero-personal-summary">{profile.summary}</p>}
-            <div className="hero-personal-details">
-              {profile.location && <span className="hero-personal-item"><MapPin size={16} aria-hidden="true" /><bdi>{profile.location}</bdi></span>}
-              {profile.email && <a className="hero-personal-item" href={"mailto:" + profile.email}><Mail size={16} aria-hidden="true" /><bdi>{profile.email}</bdi></a>}
-              {profile.phone && <a className="hero-personal-item" href={"tel:" + profile.phone}><Phone size={16} aria-hidden="true" /><bdi>{profile.phone}</bdi></a>}
-            </div>
-          </aside>
         </section>
 
+        {hasAboutSection && <AboutSection profile={profile} labels={t} number={2} />}
         {contentSections.map((key, index) => {
-          if (key === firstSecondary) return <DetailsSection key="details" profile={profile} labels={t} number={index + 1} sectionKeys={secondarySections} />;
+          const sectionNumber = index + contentSectionOffset + 1;
+          if (key === firstSecondary) return <DetailsSection key="details" profile={profile} labels={t} number={sectionNumber} sectionKeys={secondarySections} />;
           if (secondaryKeys.includes(key)) return null;
-          if (key === "projects" && profile.projects.length) return <ProjectSection key={key} profile={profile} labels={t} number={index + 1} Arrow={Arrow} />;
-          if (key === "skills" && profile.skills.length) return <SkillsSection key={key} locale={profile.locale} labels={t} skills={skills} number={index + 1} />;
-          return <ProfessionalSection key={key} profile={profile} labels={t} sectionKey={key} number={index + 1} />;
+          if (key === "projects" && profile.projects.length) return <ProjectSection key={key} profile={profile} labels={t} number={sectionNumber} Arrow={Arrow} />;
+          if (key === "skills" && profile.skills.length) return <SkillsSection key={key} locale={profile.locale} labels={t} skills={skills} number={sectionNumber} />;
+          return <ProfessionalSection key={key} profile={profile} labels={t} sectionKey={key} number={sectionNumber} />;
         })}
 
         <section id="contact" className="section contact-band" data-section="contact" aria-labelledby="contact-title" data-reveal="contact">
@@ -205,6 +203,32 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
     <footer className="footer"><div className="container"><span className="footer-mark" aria-hidden="true" />{profile.headline}{profile.demo ? " · " + t.demo : ""}</div></footer>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd).replace(/</g, "\\u003c") }} />
   </div>;
+}
+
+function AboutSection({ profile, labels, number }: { profile: PublicProfile; labels: Labels; number: number }) {
+  const portraitAlt = profile.locale === "ar" ? `صورة شخصية لـ ${profile.fullName}` : `Portrait of ${profile.fullName}`;
+  return <section id="about" className="section about-section" data-section="about" aria-labelledby="about-title" data-reveal="about">
+    <div className="section-heading"><div className="section-index-block"><span className="section-number" aria-hidden="true">{String(number).padStart(2, "0")}</span><span className="section-marker" aria-hidden="true">/</span></div><div><p className="section-kicker">{labels.personalDetails}</p><h2 id="about-title">{labels.aboutMe}</h2><p className="section-note"><bdi>{profile.headline}</bdi></p></div></div>
+    <div className="about-panel">
+      <figure className="about-portrait">
+        <Image src="/images/profile/osama-attiah.webp" alt={portraitAlt} width={1254} height={1254} sizes="(max-width: 720px) 100vw, 42vw" />
+        <figcaption className="about-portrait-caption"><span className="about-portrait-index" aria-hidden="true">01 /</span><span>{profile.fullName}</span></figcaption>
+      </figure>
+      <div className="about-copy">
+        <div className="about-copy-topline"><span className="about-copy-label">{labels.aboutMe}</span><span className="about-copy-status"><bdi>{profile.headline}</bdi></span></div>
+        <p className="about-lead">{profile.summary}</p>
+        <ul className="about-details" aria-label={labels.personalDetails}>
+          {profile.location && <li><MapPin size={17} aria-hidden="true" /><bdi>{profile.location}</bdi></li>}
+          {profile.email && <li><a href={"mailto:" + profile.email}><Mail size={17} aria-hidden="true" /><bdi>{profile.email}</bdi></a></li>}
+          {profile.phone && <li><a href={"tel:" + profile.phone}><Phone size={17} aria-hidden="true" /><bdi>{profile.phone}</bdi></a></li>}
+        </ul>
+        <div className="about-actions">
+          {profile.links.length > 0 && <div className="about-links">{profile.links.map(link => <a key={link.url} href={link.url} rel="me noreferrer">{link.label}<ArrowUpRight size={15} aria-hidden="true" /></a>)}</div>}
+          <a className="button button-primary" href={"/resumes/" + profile.slug + "/" + profile.locale + "/resume.pdf"} download>{labels.resume}<Download size={18} aria-hidden="true" /></a>
+        </div>
+      </div>
+    </div>
+  </section>;
 }
 
 function ProjectSection({ profile, labels, number, Arrow }: { profile: PublicProfile; labels: Labels; number: number; Arrow: typeof ArrowLeft }) {
@@ -243,8 +267,8 @@ function ProjectVisual({ project, index, labels }: { project: PublicProject; ind
 }
 
 function SkillsSection({ locale, labels, skills, number }: { locale: "ar" | "en"; labels: Labels; skills: Map<string, PublicProfile["skills"]>; number: number }) {
-  return <section id="about" className="section skills-section" data-section="about" aria-labelledby="skills-title" data-reveal="skills">
-    <div className="section-heading"><div className="section-index-block"><span className="section-number" aria-hidden="true">{String(number).padStart(2, "0")}</span><span className="section-marker" aria-hidden="true">/</span></div><div><p className="section-kicker">{labels.about}</p><h2 id="skills-title">{labels.skills}</h2><p className="section-note"><bdi>{countLabel(locale, skills.size, "skillGroups")}</bdi></p></div></div>
+  return <section id="skills" className="section skills-section" data-section="skills" aria-labelledby="skills-title" data-reveal="skills">
+    <div className="section-heading"><div className="section-index-block"><span className="section-number" aria-hidden="true">{String(number).padStart(2, "0")}</span><span className="section-marker" aria-hidden="true">/</span></div><div><p className="section-kicker">{labels.capabilities}</p><h2 id="skills-title">{labels.skills}</h2><p className="section-note"><bdi>{countLabel(locale, skills.size, "skillGroups")}</bdi></p></div></div>
     <div className="skill-groups">{Array.from(skills.entries()).map(([category, items], index) => <section className="skill-group" key={category}><div className="skill-group-topline"><span className="skill-group-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><span className="skill-group-count">{countLabel(locale, items.length, "skills")}</span></div><h3>{category}</h3><p>{items.map(x => x.name).join(" · ")}</p></section>)}</div>
   </section>;
 }
