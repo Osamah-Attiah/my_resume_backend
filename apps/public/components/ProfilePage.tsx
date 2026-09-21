@@ -208,14 +208,13 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
 function AboutSection({ profile, labels, number }: { profile: PublicProfile; labels: Labels; number: number }) {
   const portraitAlt = profile.locale === "ar" ? `صورة شخصية لـ ${profile.fullName}` : `Portrait of ${profile.fullName}`;
   return <section id="about" className="section about-section" data-section="about" aria-labelledby="about-title" data-reveal="about">
-    <div className="section-heading"><div className="section-index-block"><span className="section-number" aria-hidden="true">{String(number).padStart(2, "0")}</span><span className="section-marker" aria-hidden="true">/</span></div><div><p className="section-kicker">{labels.personalDetails}</p><h2 id="about-title">{labels.aboutMe}</h2><p className="section-note"><bdi>{profile.headline}</bdi></p></div></div>
+    <div className="section-heading about-section-heading"><div className="section-index-block"><span className="section-number" aria-hidden="true">{String(number).padStart(2, "0")}</span><span className="section-marker" aria-hidden="true">/</span></div><div><p className="section-kicker">{labels.personalDetails}</p><h2 id="about-title">{labels.aboutMe}</h2></div></div>
     <div className="about-panel">
       <figure className="about-portrait">
-        <Image src="/images/profile/osama-attiah.webp" alt={portraitAlt} width={1254} height={1254} sizes="(max-width: 720px) 100vw, 42vw" />
-        <figcaption className="about-portrait-caption"><span className="about-portrait-index" aria-hidden="true">01 /</span><span>{profile.fullName}</span></figcaption>
+        <Image src="/images/profile/osama-attiah.webp" alt={portraitAlt} width={1254} height={1254} sizes="(max-width: 720px) calc(100vw - 80px), 420px" />
       </figure>
       <div className="about-copy">
-        <div className="about-copy-topline"><span className="about-copy-label">{labels.aboutMe}</span><span className="about-copy-status"><bdi>{profile.headline}</bdi></span></div>
+        <div className="about-copy-topline"><span className="about-copy-label">{labels.aboutMe}</span><h3 className="about-name">{profile.fullName}</h3><p className="about-copy-status"><bdi>{profile.headline}</bdi></p></div>
         <p className="about-lead">{profile.summary}</p>
         <ul className="about-details" aria-label={labels.personalDetails}>
           {profile.location && <li><MapPin size={17} aria-hidden="true" /><bdi>{profile.location}</bdi></li>}
