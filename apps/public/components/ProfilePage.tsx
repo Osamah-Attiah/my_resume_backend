@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, ArrowUpRight, Download, Mail, MapPin, Phone } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronDown, Download, Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
 import type { PublicProfile, PublicProject } from "@resume/contracts";
 import { PageMotion } from "./PageMotion";
@@ -229,8 +229,10 @@ function AboutSection({ profile, labels, number }: { profile: PublicProfile; lab
       </figure>
       <div className="about-copy">
         <div className="about-copy-topline"><span className="about-copy-label">{labels.aboutMe}</span><h3 className="about-name">{profile.fullName}</h3><p className="about-copy-status"><bdi>{profile.headline}</bdi></p></div>
-        <p className="about-lead">{summary.preview}</p>
-        {summary.remainder && <details className="about-more"><summary className="about-more-toggle"><span className="about-more-closed">{labels.seeMore}</span><span className="about-more-open">{labels.seeLess}</span></summary><p className="about-lead about-lead-more">{summary.remainder}</p></details>}
+        <div className="about-summary-block">
+          <p className="about-lead">{summary.preview}</p>
+          {summary.remainder && <details className="about-more"><summary className="about-more-toggle"><span className="about-more-closed">{labels.seeMore}</span><span className="about-more-open">{labels.seeLess}</span><span className="about-more-icon" aria-hidden="true"><ChevronDown size={16} strokeWidth={1.8} /></span></summary><div className="about-more-content"><p className="about-lead about-lead-more">{summary.remainder}</p></div></details>}
+        </div>
         <ul className="about-details" aria-label={labels.personalDetails}>
           {profile.location && <li><MapPin size={17} aria-hidden="true" /><bdi>{profile.location}</bdi></li>}
           {profile.email && <li><a href={"mailto:" + profile.email}><Mail size={17} aria-hidden="true" /><bdi>{profile.email}</bdi></a></li>}
