@@ -28,7 +28,6 @@ public sealed class PublicationReconcilerTests
         string? capturedBody = null;
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["Publishing:Provider"] = "azure-devops",
             ["AzureDevOps:Organization"] = "osama-flutter",
             ["AzureDevOps:Project"] = "my_resume_backend",
             ["AzureDevOps:PipelineId"] = "42",
@@ -52,6 +51,30 @@ public sealed class PublicationReconcilerTests
         Assert.Equal("https://dev.azure.com/osama-flutter/my_resume_backend/_apis/pipelines/42/runs?api-version=7.1", capturedUri!.AbsoluteUri);
         Assert.Contains($"\"PUBLICATION_ID\":{{\"value\":\"{publicationId}\"}}", capturedBody!, StringComparison.Ordinal);
         Assert.Contains($"\"ATTEMPT_ID\":{{\"value\":\"{attemptId}\"}}", capturedBody!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Site_dispatch_does_not_fall_back_to_github_actions()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Publishing:Provider"] = "github",
+            ["GitHub:Owner"] = "owner",
+            ["GitHub:PublishRepository"] = "product",
+            ["GitHub:Token"] = "test-token"
+        }).Build();
+        var requests = 0;
+        var dispatcher = new PublicationDispatcher(new HttpClient(new StubHandler(_ =>
+        {
+            requests++;
+            return new HttpResponseMessage(HttpStatusCode.NoContent);
+        })), configuration);
+
+        Assert.False(dispatcher.IsConfigured(PublicationPurpose.SitePublish));
+        var result = await dispatcher.DispatchAsync(Guid.NewGuid(), Guid.NewGuid(), TestContext.Current.CancellationToken);
+        Assert.Equal("azure", result.Provider);
+        Assert.False(result.Configured);
+        Assert.Equal(0, requests);
     }
 
     [Fact]

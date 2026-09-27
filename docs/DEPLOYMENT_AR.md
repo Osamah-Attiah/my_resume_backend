@@ -1,51 +1,46 @@
-# النشر المجاني
+# النشر المعتمد
 
-البنية المقترحة: Neon Free لـPostgreSQL، Render Free لـ`resume.API`، ومشروع Cloudflare Pages مستقل لكل Site عام. لوحة الإدارة يمكن أن تكون مشروع Pages منفصلًا. الصفحة العامة وPDF يُنشران كملفات ثابتة؛ بيانات المشاريع وروابطها تُحدّث من الـAPI عند الزيارة وكل ١٥ ثانية ما دامت الصفحة مفتوحة. عند تعذر الاتصال تُعرض آخر نسخة منشورة.
+يُنشَر الموقع العام وملفات Resume PDF التابعة له عبر **Azure DevOps Pipeline** في `azure-pipelines.yml` فقط. يقرأ خط النشر نسخة ثابتة من API، يولّد PDF والموقع، يشغّل الفحوص، ثم يرفع `apps/public/out` إلى مشروع Cloudflare Pages المحدد داخل النسخة. لا تستخدم GitHub Actions لنشر الموقع العام؛ ملف `.github/workflows/ci.yml` للفحوص فقط.
 
-## 1. مستودعات GitHub
+البنية الحالية: Neon لقاعدة PostgreSQL، Render لخدمة `resume.API`، وCloudflare Pages للموقع العام ولوحة الإدارة. بيانات المشاريع وروابطها تُحدّث من API عند الزيارة وكل ١٥ ثانية ما دامت الصفحة مفتوحة. يبقى آخر محتوى منشور متاحًا عند تعذر الاتصال، بينما يتطلب تحديث PDF والصفحات الثابتة طلب نشر جديد.
 
-1. أنشئ مستودع المنتج الذي يحوي هذا المشروع وWorkflow العام `.github/workflows/publish-site.yml`.
-2. أنشئ مستودع عمليات **خاصًا** وانسخ إليه `deploy/private-operations/export-private-pdf.yml` تحت `.github/workflows/export-private-pdf.yml`.
-3. ثبّت `GitHub__ProductRef` على commit SHA كامل (40 أو 64 محرفًا سداسيًا)، وليس `main`. يرفض API تفعيل التصدير الخاص بمرجع متحرك.
-4. استخدم fine-grained token محدودًا بالمستودعين وبصلاحيات Actions المطلوبة فقط. يفضّل فصل credential النشر العام عن الخاص عند الإعداد الفعلي.
+## إعداد Render
 
-## 2. متغيرات Render
-
-- `ConnectionStrings__DefaultConnection`: سلسلة Neon مع SSL.
-- `Auth__SigningKey`: 32 بايت عشوائية على الأقل؛ يبدأ Production بالفشل إذا غابت.
+- `ConnectionStrings__DefaultConnection`: سلسلة اتصال قاعدة البيانات مع SSL.
+- `Auth__SigningKey`: مفتاح عشوائي لا يقل عن 32 بايت.
 - `Auth__Issuer=resume-api` و`Auth__Audience=resume-admin`.
-- `Cors__AdminOrigin`: أصل لوحة الإدارة HTTPS فقط.
-- `Publishing__CallbackSecret`: قيمة عشوائية تطابق سر GitHub أدناه.
-- `GitHub__Owner`, `GitHub__PublishRepository`, `GitHub__PublishWorkflow=publish-site.yml`, `GitHub__PublishRef=main`.
-- `GitHub__PrivateExportRepository`, `GitHub__PrivateExportWorkflow=export-private-pdf.yml`, `GitHub__PrivateExportRef=main`.
-- `GitHub__ProductRepository=owner/product-repository`, و`GitHub__ProductRef=<pinned-commit-sha>`.
-- `GitHub__Token`: يبقى على الخادم فقط.
-- اختياري للصور العامة: `Cloudinary__CloudName`, `Cloudinary__ApiKey`, `Cloudinary__ApiSecret`.
+- `Cors__AdminOrigin`: أصل لوحة الإدارة HTTPS.
+- `Publishing__CallbackSecret`: سر مشترك مع Azure DevOps لاسترجاع نسخة النشر وتسجيل النتيجة.
+- `Publishing__Provider=azure-devops` للتوثيق التشغيلي؛ يوجّه الكود نشر الموقع إلى Azure DevOps حتى إذا غاب هذا المتغير.
+- `AzureDevOps__Organization`, `AzureDevOps__Project`, `AzureDevOps__PipelineId`, `AzureDevOps__Token`, `AzureDevOps__Ref=main`.
 
-يوفر `render.yaml` أسماء هذه المتغيرات بلا قيم سرية. يطبّق API في بيئة Production migrations المعلّقة عند بدء التشغيل، قبل استقبال الطلبات، بما يناسب خطة Render المجانية التي لا تدعم pre-deploy command. راجع سلامة نسخ قاعدة البيانات قبل رفع تغييرات المخطط. نفّذ bootstrap للمالك مرة واحدة بمتغيري `BOOTSTRAP_ADMIN_EMAIL` و`BOOTSTRAP_ADMIN_PASSWORD` واحذفهما فورًا.
+يوثق `render.yaml` أسماء المتغيرات بلا قيمها. يطبّق API migrations المعلقة عند بدء التشغيل في Production؛ راجع النسخ الاحتياطية قبل نشر تغييرات مخطط قاعدة البيانات.
 
-## 3. أسرار GitHub Actions
+## إعداد Azure DevOps
 
-في مستودع المنتج والمستودع الخاص، حسب الحاجة:
+اربط Pipeline بالمستودع وملف `azure-pipelines.yml`. اضبط متغيرات/أسرار خط النشر التالية:
 
 - `RESUME_API_ORIGIN`: أصل API بـHTTPS دون شرطة أخيرة.
-- `RESUME_PUBLISHING_CALLBACK_SECRET`: يطابق `Publishing__CallbackSecret`.
-- في مستودع المنتج فقط: `CLOUDFLARE_API_TOKEN` محدود إلى Pages و`CLOUDFLARE_ACCOUNT_ID`.
+- `Publishing__CallbackSecret`: نفس القيمة المضبوطة في Render.
+- `CLOUDFLARE_API_TOKEN`: صلاحية محدودة لنشر Pages.
+- `CLOUDFLARE_ACCOUNT_ID`: معرّف حساب Cloudflare.
 
-اسم مشروع Pages يؤخذ من `deploymentTargetKey` داخل snapshot الموقع. كل Site يحتاج مشروع Pages مطابقًا، ولا توجد credential داخل snapshot.
+ينشئ API عند طلب النشر `PUBLICATION_ID` و`ATTEMPT_ID` ويرسلهما إلى Azure DevOps. لا تضع لهما قيمًا ثابتة داخل YAML، لأن ذلك سيطغى على قيم كل عملية نشر. يأخذ خط النشر `deploymentTargetKey` من نسخة النشر، ويرفع إلى Cloudflare Pages مع `--branch main` كي يصل التحديث إلى نطاق الإنتاج.
 
-## 4. الموقع ولوحة الإدارة
+## طريقة النشر والتحقق
 
-- ابنِ لوحة الإدارة مع `VITE_API_BASE_URL=https://api.example.com` و`VITE_PUBLIC_SITE_URL=https://site.example.com`. هذه عناوين عامة وليست أسرارًا.
-- حدّث `BaseUrl` وSEO و`deploymentTargetKey` لكل Site من اللوحة، ثم اطلب النشر.
-- Workflow يسحب snapshot ثابتًا، يولّد PDF، يشغّل QA والبناء وماسح الأسرار، ينشر output كاملًا، ثم يسجل hashes وأدلة النشر.
-- يسجل Workflow رقم GitHub run وحالات `building/validating/deploying`. إذا نجح الرفع وضاع callback، زر «تحديث الحالة» يسترجع النتيجة من evidence artifact المحمي ذي retention سبعة أيام، دون إعادة نشر عمياء.
-- تغيير slug أو سحب محتوى عام يولّد output كاملًا جديدًا. راجع واحذف preview deployments القديمة من حساب Cloudflare عند الحاجة.
+1. حدّث بيانات الموقع و`BaseUrl` وSEO و`deploymentTargetKey` من لوحة الإدارة.
+2. من **المواقع والنشر** اختر **مراجعة ونشر**. لا تشغّل GitHub Actions لهذا الغرض.
+3. راقب Azure DevOps Pipeline: جلب النسخة الثابتة، توليد PDF، `pdf:qa`، البناء والاختبارات، ورفع Pages.
+4. تأكد من ظهور حالة **ناجح** للإصدار في لوحة الإدارة، ثم افتح العربية والإنجليزية وPDF من نطاق Pages الفعلي.
+5. اختبر مشروعًا ورابطًا مضافًا من اللوحة؛ تُرجع المشاريع من API، أما PDF فيتجدد مع كل نشر.
 
-## 5. فحص الإنتاج الإلزامي
+إذا تعطل Azure DevOps، أصلح سبب التعطل وأعد المحاولة من لوحة الإدارة. لا تنتقل إلى GitHub Actions أو ترفع نسخة محلية مبنية من بيانات تجريبية بدل نسخة API الحالية.
 
-بعد أول نشر حقيقي: أوقف API مؤقتًا، وافتح العربية والإنجليزية وPDF و404 وrobots وsitemap من نطاق Pages. افحص headers، canonical وhreflang وredirects، ثم اربط Search Console وقدم sitemap. لا يُنفذ تحقق الملكية دون حساب المالك.
+## تصدير PDF الخاص
+
+تصدير PDF الخاص عملية منفصلة عن نشر الموقع العام. يمكن أن يستخدم مستودع عمليات خاصًا وGitHub Actions عبر `deploy/private-operations/export-private-pdf.yml`. لا تمنحه صلاحيات نشر Cloudflare للموقع العام. ثبّت `GitHub__ProductRef` على commit SHA كامل بدل `main`، واحفظ رموز الوصول في الخادم فقط.
 
 ## النسخ الاحتياطي
 
-أنشئ `pg_dump -Fc` مشفر التخزين خارج المستودع، واختبر `pg_restore` دوريًا في قاعدة جديدة قبل الاعتماد عليه. لا تضع dump أو snapshot خاصة داخل Git أو artifacts عامة.
+أنشئ `pg_dump -Fc` مشفر التخزين خارج المستودع، واختبر `pg_restore` دوريًا في قاعدة جديدة. لا تضع dump أو snapshot خاصة داخل Git أو artifacts عامة.

@@ -2,6 +2,8 @@
 
 تاريخ الإعداد: 11 سبتمبر 2026. الحالة: مواصفات تنفيذ مقترحة مبنية على قرارات صاحب المشروع، وليست تقريرًا عن نظام مكتمل.
 
+> تحديث 27 سبتمبر 2026: أقسام هذه المواصفات التي تقترح نشر الموقع العام عبر GitHub Actions تاريخية. المسار المعتمد والملزم الآن هو Azure DevOps Pipeline في `azure-pipelines.yml`، وفق `AGENTS.md` و`docs/DEPLOYMENT_AR.md`.
+
 حزمة التسليم تتكون من هذا التحليل، و[مواصفات التصميم](./TERRA_VISUAL_DESIGN_AR.md)، و[مواصفات الهوية وSEO](./TERRA_SEO_IDENTITY_AR.md). على Terra قراءة الملفات الثلاثة؛ ملحق SEO يحدد التفاصيل المكملة للفهرسة والهوية، والتصميم يحدد التكوين المرئي، مع المحافظة على قواعد البيانات واستقلال قالب ATS PDF.
 
 ## 1. الهدف والقرارات المعتمدة
@@ -482,7 +484,7 @@ Base path: `/api/v1`. DTOs مستقلة عن EF entities. استخدم ProblemDe
 - build timeout/retry محدود لاستيقاظ Render؛ لا keep-alive cron لإلغاء نوم الخطة.
 - Snapshot JSON في DB ليس backup مستقلًا؛ وثّق `pg_dump/pg_restore` ونسخة مشفرة خاصة يحتفظ بها المالك خارج DB، مع تجربة restore محلية.
 - `data-export` للاستفادة من المحتوى ونقله، لا يعوض DB backup. لا تنشر dumps أو private exports في repo عام أو artifacts عامة.
-- ملف إعداد الأسرار يوثّق بالأسماء فقط: `ConnectionStrings__DefaultConnection`, `Auth__SigningKey`, `Auth__Issuer`, `Auth__Audience`, `Cors__AdminOrigin`, `Cloudinary__CloudName`, `Cloudinary__ApiKey`, `Cloudinary__ApiSecret`, `GitHub__PublishRepository`, `GitHub__PrivateExportRepository`, `GitHub__Token`, `Publishing__CallbackSecret`. داخل CI فقط: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, وmapping أهداف المواقع. أسماء الواجهة العامة مثل `VITE_API_BASE_URL` لا تحمل سرًا. يفضّل credential منفصلة لكل غرض عند تهيئة الإنتاج.
+- ملف إعداد الأسرار يوثّق بالأسماء فقط: `ConnectionStrings__DefaultConnection`, `Auth__SigningKey`, `Auth__Issuer`, `Auth__Audience`, `Cors__AdminOrigin`, `Cloudinary__CloudName`, `Cloudinary__ApiKey`, `Cloudinary__ApiSecret`, `AzureDevOps__Organization`, `AzureDevOps__Project`, `AzureDevOps__PipelineId`, `AzureDevOps__Token`, `GitHub__PrivateExportRepository`, `GitHub__Token`, `Publishing__CallbackSecret`. داخل Azure DevOps فقط: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. أسماء الواجهة العامة مثل `VITE_API_BASE_URL` لا تحمل سرًا. يفضّل credential منفصلة لكل غرض عند تهيئة الإنتاج.
 - ضع retention للأخطاء وaudit والمنشورات الخاصة، ولا تحذف snapshot/صور يحتاجها آخر نشر أو rollback المحتفظ به.
 - لا ترسل secret configuration من شاشة الإعدادات؛ تعرض جاهز/غير جاهز وآخر تحقق فقط.
 

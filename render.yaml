@@ -34,12 +34,6 @@ services:
         value: main
       - key: GitHub__Owner
         sync: false
-      - key: GitHub__PublishRepository
-        sync: false
-      - key: GitHub__PublishWorkflow
-        value: publish-site.yml
-      - key: GitHub__PublishRef
-        value: main
       - key: GitHub__PrivateExportRepository
         sync: false
       - key: GitHub__PrivateExportWorkflow

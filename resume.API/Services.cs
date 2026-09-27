@@ -23,15 +23,12 @@ public sealed class PublicationDispatcher(HttpClient client, IConfiguration conf
 {
     public bool IsConfigured(PublicationPurpose purpose)
     {
-        if (UsesAzureDevOps(purpose)) return IsAzureDevOpsConfigured();
+        if (purpose == PublicationPurpose.SitePublish) return IsAzureDevOpsConfigured();
 
         var owner = configuration["GitHub:Owner"] ?? configuration["Publishing:GitHubOwner"];
-        var repository = purpose == PublicationPurpose.PrivatePdfExport
-            ? configuration["GitHub:PrivateExportRepository"]
-            : configuration["GitHub:PublishRepository"] ?? configuration["Publishing:GitHubRepository"];
+        var repository = configuration["GitHub:PrivateExportRepository"];
         var token = configuration["GitHub:Token"] ?? configuration["Publishing:GitHubToken"];
         if (string.IsNullOrWhiteSpace(owner) || string.IsNullOrWhiteSpace(repository) || string.IsNullOrWhiteSpace(token)) return false;
-        if (purpose != PublicationPurpose.PrivatePdfExport) return true;
         var productRepository = configuration["GitHub:ProductRepository"];
         var productRef = configuration["GitHub:ProductRef"];
         return !string.IsNullOrWhiteSpace(productRepository) && IsPinnedGitRef(productRef);
@@ -39,22 +36,18 @@ public sealed class PublicationDispatcher(HttpClient client, IConfiguration conf
 
     public async Task<DispatchResult> DispatchAsync(Guid publicationId, Guid attemptId, CancellationToken ct, PublicationPurpose purpose = PublicationPurpose.SitePublish)
     {
-        if (UsesAzureDevOps(purpose)) return await DispatchAzureDevOpsAsync(publicationId, attemptId, ct);
+        if (purpose == PublicationPurpose.SitePublish) return await DispatchAzureDevOpsAsync(publicationId, attemptId, ct);
 
         var owner = configuration["GitHub:Owner"] ?? configuration["Publishing:GitHubOwner"];
-        var repository = purpose == PublicationPurpose.PrivatePdfExport
-            ? configuration["GitHub:PrivateExportRepository"]
-            : configuration["GitHub:PublishRepository"] ?? configuration["Publishing:GitHubRepository"];
+        var repository = configuration["GitHub:PrivateExportRepository"];
         var token = configuration["GitHub:Token"] ?? configuration["Publishing:GitHubToken"];
         if (!IsConfigured(purpose)) return new(false, false, null, "github");
-        var workflow = purpose == PublicationPurpose.PrivatePdfExport ? configuration["GitHub:PrivateExportWorkflow"] ?? "export-private-pdf.yml" : configuration["GitHub:PublishWorkflow"] ?? configuration["Publishing:GitHubWorkflow"] ?? "publish-site.yml";
-        var gitRef = purpose == PublicationPurpose.PrivatePdfExport ? configuration["GitHub:PrivateExportRef"] ?? "main" : configuration["GitHub:PublishRef"] ?? configuration["Publishing:GitHubRef"] ?? "main";
+        var workflow = configuration["GitHub:PrivateExportWorkflow"] ?? "export-private-pdf.yml";
+        var gitRef = configuration["GitHub:PrivateExportRef"] ?? "main";
         var uri = $"https://api.github.com/repos/{Uri.EscapeDataString(owner!)}/{Uri.EscapeDataString(repository!)}/actions/workflows/{Uri.EscapeDataString(workflow)}/dispatches";
         using var request = new HttpRequestMessage(HttpMethod.Post, uri)
         {
-            Content = purpose == PublicationPurpose.PrivatePdfExport
-                ? JsonContent.Create(new { @ref = gitRef, inputs = new { publication_id = publicationId.ToString(), attempt_id = attemptId.ToString(), product_repository = configuration["GitHub:ProductRepository"]!, product_ref = configuration["GitHub:ProductRef"]! } })
-                : JsonContent.Create(new { @ref = gitRef, inputs = new { publication_id = publicationId.ToString(), attempt_id = attemptId.ToString() } })
+            Content = JsonContent.Create(new { @ref = gitRef, inputs = new { publication_id = publicationId.ToString(), attempt_id = attemptId.ToString(), product_repository = configuration["GitHub:ProductRepository"]!, product_ref = configuration["GitHub:ProductRef"]! } })
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
@@ -72,8 +65,6 @@ public sealed class PublicationDispatcher(HttpClient client, IConfiguration conf
             return new(true, false, exception.Message, "github");
         }
     }
-
-    private bool UsesAzureDevOps(PublicationPurpose purpose) => purpose == PublicationPurpose.SitePublish && string.Equals(configuration["Publishing:Provider"], "azure-devops", StringComparison.OrdinalIgnoreCase);
 
     private bool IsAzureDevOpsConfigured() =>
         !string.IsNullOrWhiteSpace(configuration["AzureDevOps:Organization"]) &&

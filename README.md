@@ -33,6 +33,10 @@ PUBLIC_API_BASE_URL=http://127.0.0.1:5080 npm --workspace @resume/public run dev
 
 The admin dashboard runs at `http://127.0.0.1:5173`, and the public site runs at `http://127.0.0.1:3000`. The Vite proxy routes `/api` to port 5080 locally.
 
+## Production publishing
+
+Publish the public site and its resume PDFs from the admin dashboard through `azure-pipelines.yml` in Azure DevOps. The pipeline builds from the current immutable publication snapshot and deploys to Cloudflare Pages. GitHub Actions runs CI checks only; it does not deploy the public site. See [Deployment](docs/DEPLOYMENT_AR.md) and [project instructions](AGENTS.md).
+
 ## Full verification
 
 ```bash
