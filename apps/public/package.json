@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "\"$npm_node_execpath\" ../../node_modules/next/dist/bin/next dev -p 3000",
     "build": "\"$npm_node_execpath\" ../../node_modules/next/dist/bin/next build && \"$npm_node_execpath\" scripts/generate-og-images.mjs && \"$npm_node_execpath\" scripts/postprocess-static.mjs",
+    "preview": "\"$npm_node_execpath\" scripts/preview-static.mjs",
     "test": "\"$npm_node_execpath\" ../../node_modules/vitest/vitest.mjs run --passWithNoTests"
   },
   "dependencies": {

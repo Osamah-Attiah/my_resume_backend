@@ -1,4 +1,4 @@
-import type { Locale, PublicProfile, PublicProject, PublicSiteSnapshot, ResumeDocument } from "./index";
+import type { Locale, PublicProfile, PublicProject, PublicSiteSnapshot, ResumeDocument, StoryScene } from "./index";
 
 type PublishedProfile = {
   locale: Locale;
@@ -11,6 +11,7 @@ type PublishedProfile = {
   seo: { title: string; description: string; canonical?: string; ogImage?: { src: string; width: number; height: number; alt: string } };
   projectSeo?: Record<string, { title?: string; description?: string; canonical?: string; ogImage?: { src: string; width: number; height: number; alt: string }; indexable: boolean }>;
   projectKinds?: Record<string, string>;
+  story?: StoryScene[];
 };
 type PublicationEnvelope = { schemaVersion: number; purpose?: "privatePdfExport"; baseUrl?: string; lastModified?: string; site?: { searchVerificationToken?: string }; profiles?: PublishedProfile[]; redirects?: Array<{ source: string; target: string; status: number }> };
 
@@ -38,7 +39,9 @@ function toPublicProfile(value: PublishedProfile, demo: boolean): PublicProfile 
   };
   if (document.locale !== value.locale || !document.fullName || !document.headline) throw new Error(`Incomplete ${value.locale}/${value.slug} profile.`);
   const projects: PublicProject[] = document.projects.map(project => ({ ...project, kind: kind(value.projectKinds?.[project.slug]) }));
-  return { ...document, slug: value.slug, indexable: demo ? false : value.indexable, listed: value.isListed, demo, projects, pdfDocument: value.pdfDocument, seo: value.seo, projectSeo: value.projectSeo };
+  const validStages = new Set(["intro", "action", "layers", "offline", "backend", "backend-focus", "integration", "operations", "return"]);
+  const story = Array.isArray(value.story) ? value.story.filter(scene => scene && typeof scene.key === "string" && typeof scene.title === "string" && typeof scene.body === "string" && validStages.has(scene.stage) && (!scene.projectSlug || projects.some(project => project.slug === scene.projectSlug))) : undefined;
+  return { ...document, slug: value.slug, indexable: demo ? false : value.indexable, listed: value.isListed, demo, projects, story, pdfDocument: value.pdfDocument, seo: value.seo, projectSeo: value.projectSeo };
 }
 function kind(value?: string): PublicProject["kind"] { return value === "OpenSource" || value === "Freelance" || value === "Employment" ? value : "Personal"; }
 

@@ -108,6 +108,12 @@ if (args.Contains("--seed-demo", StringComparer.Ordinal))
     return;
 }
 
+if (app.Environment.IsProduction())
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    await scope.ServiceProvider.GetRequiredService<ResumeDbContext>().Database.MigrateAsync();
+}
+
 app.Run();
 
 public partial class Program;

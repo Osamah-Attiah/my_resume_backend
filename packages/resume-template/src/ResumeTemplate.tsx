@@ -1,5 +1,5 @@
 import React from "react";
-import type { ResumeDocument, ResumeEducation, ResumeExperience, ResumeLanguage, ResumeProject, ResumeCertification } from "@resume/contracts";
+import { projectLinksFor, type ResumeDocument, type ResumeEducation, type ResumeExperience, type ResumeLanguage, type ResumeProject, type ResumeCertification } from "@resume/contracts";
 
 const headings = {
   en: {
@@ -97,7 +97,7 @@ function renderSection(key: string, document: ResumeDocument, t: Labels, grouped
     </React.Fragment>;
   }
   if (key === "experience" && document.experiences.length) return <ResumeSection key={key} title={t.experience}>{document.experiences.map(item => <ExperienceEntry key={`${item.organization}-${item.startDate}`} item={item} locale={document.locale} labels={t} />)}</ResumeSection>;
-  if (key === "projects" && document.projects.length) return <ResumeSection key={key} title={t.projects}>{document.projects.map(project => <ProjectEntry key={project.slug} project={project} locale={document.locale} labels={t} />)}</ResumeSection>;
+  if (key === "projects" && document.projects.length) return <ResumeSection key={key} title={t.projects}>{document.projects.map(project => <ProjectEntry key={project.slug} project={project} locale={document.locale} />)}</ResumeSection>;
   if (key === "education" && document.educations.length) return <ResumeSection key={key} title={t.education}>{document.educations.map(item => <EducationEntry key={`${item.institution}-${item.degree}`} item={item} locale={document.locale} labels={t} />)}</ResumeSection>;
   return null;
 }
@@ -113,8 +113,8 @@ function ExperienceEntry({ item, locale, labels }: { item: ResumeExperience; loc
   </article>;
 }
 
-function ProjectEntry({ project, locale, labels }: { project: ResumeProject; locale: "ar" | "en"; labels: Labels }) {
-  const links = [project.demoUrl ? { label: project.demoUrl.includes("play.google.com") ? "Google Play" : project.demoUrl.includes("apps.apple.com") ? "App Store" : labels.demo, url: project.demoUrl } : null, project.repositoryUrl ? { label: project.repositoryUrl.includes("github.com") ? "GitHub" : labels.repository, url: project.repositoryUrl } : null].filter(Boolean) as Array<{ label: string; url: string }>;
+function ProjectEntry({ project, locale }: { project: ResumeProject; locale: "ar" | "en" }) {
+  const links = projectLinksFor(project, locale);
   return <article className="entry project-entry">
     <p className="project-line"><strong>{project.name}</strong>{project.summary && <> - {project.summary}</>}{links.map((link, index) => <React.Fragment key={link.url}> | <a href={link.url}>{link.label}</a></React.Fragment>)}</p>
     {project.role && <p className="meta">{project.role}</p>}

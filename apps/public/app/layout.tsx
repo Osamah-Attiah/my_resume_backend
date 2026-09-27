@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./story.css";
 import { demoSnapshot } from "../lib/data";
 
 export const metadata: Metadata = {

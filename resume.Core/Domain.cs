@@ -113,6 +113,17 @@ public sealed class Project : OwnedEntity
     public List<ProjectHighlight> Highlights { get; set; } = [];
     public List<ProjectSkill> Skills { get; set; } = [];
     public List<ProjectMedia> Media { get; set; } = [];
+    public List<ProjectLink> Links { get; set; } = [];
+}
+
+public sealed class ProjectLink : MutableEntity
+{
+    public Guid ProjectId { get; set; }
+    public string Kind { get; set; } = "";
+    public string Url { get; set; } = "";
+    public string? LabelAr { get; set; }
+    public string? LabelEn { get; set; }
+    public int SortOrder { get; set; }
 }
 
 public sealed class ProjectTranslation : MutableEntity
@@ -255,6 +266,7 @@ public sealed class ResumeProfileTranslation : MutableEntity
     public Locale Locale { get; set; }
     public string Headline { get; set; } = "";
     public string Summary { get; set; } = "";
+    public string? StoryJson { get; set; }
     public string? SeoTitle { get; set; }
     public string? SeoDescription { get; set; }
 }

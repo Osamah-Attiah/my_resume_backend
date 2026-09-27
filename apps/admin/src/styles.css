@@ -180,6 +180,19 @@ button:disabled { cursor: not-allowed; opacity: .48; }
   margin-top: 28px;
   padding-top: 22px;
 }
+.project-link-editor-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  padding-block: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.project-link-editor-row .row-actions { padding-top: 30px; }
+@media (max-width: 720px) {
+  .project-link-editor-row { grid-template-columns: 1fr; }
+  .project-link-editor-row .row-actions { padding-top: 0; }
+}
 .site-profile-editor { padding: 18px 0; border-bottom: 1px solid var(--line); }
 .site-profile-editor:last-child { border-bottom: 0; }
 .site-profile-editor__heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using Resume.Application;
 using Resume.Core;
 using Resume.Infrastructure;
@@ -163,10 +164,10 @@ public static class ApiEndpoints
 
     private static void MapProjects(RouteGroupBuilder admin)
     {
-        admin.MapGet("/projects", async (HttpContext http, ResumeDbContext db, CancellationToken ct) => Results.Ok(await db.Projects.AsNoTracking().Include(x => x.Translations).Include(x => x.Highlights).ThenInclude(x => x.Translations).Include(x => x.Media).ThenInclude(x => x.Asset).ThenInclude(x => x!.Translations).Where(x => x.PersonId == http.User.PersonId() && x.ArchivedAt == null).OrderByDescending(x => x.UpdatedAt).ToListAsync(ct)));
+        admin.MapGet("/projects", async (HttpContext http, ResumeDbContext db, CancellationToken ct) => Results.Ok(await db.Projects.AsNoTracking().Include(x => x.Translations).Include(x => x.Highlights).ThenInclude(x => x.Translations).Include(x => x.Media).ThenInclude(x => x.Asset).ThenInclude(x => x!.Translations).Include(x => x.Links).Where(x => x.PersonId == http.User.PersonId() && x.ArchivedAt == null).OrderByDescending(x => x.UpdatedAt).ToListAsync(ct)));
         admin.MapGet("/projects/{id:guid}", async (Guid id, HttpContext http, ResumeDbContext db, CancellationToken ct) =>
         {
-            var project = await db.Projects.AsNoTracking().Include(x => x.Translations).Include(x => x.Highlights).ThenInclude(x => x.Translations).Include(x => x.Skills).Include(x => x.Media).ThenInclude(x => x.Asset).ThenInclude(x => x!.Translations).SingleOrDefaultAsync(x => x.Id == id && x.PersonId == http.User.PersonId(), ct);
+            var project = await db.Projects.AsNoTracking().Include(x => x.Translations).Include(x => x.Highlights).ThenInclude(x => x.Translations).Include(x => x.Skills).Include(x => x.Media).ThenInclude(x => x.Asset).ThenInclude(x => x!.Translations).Include(x => x.Links).SingleOrDefaultAsync(x => x.Id == id && x.PersonId == http.User.PersonId(), ct);
             return project is null ? Results.NotFound() : Results.Ok(project);
         });
         admin.MapPost("/projects", async (ProjectRequest request, HttpContext http, ResumeDbContext db, CancellationToken ct) =>
@@ -182,6 +183,26 @@ public static class ApiEndpoints
             var project = await db.Projects.Include(x => x.Translations).SingleOrDefaultAsync(x => x.Id == id && x.PersonId == http.User.PersonId(), ct);
             if (project is null) return Results.NotFound(); if (project.Version != request.Version) return Conflict();
             ApplyProject(project, request); await Audit(db, http.User.AdminId(), "project.updated", "Project", project.Id, ct); return Results.Ok(project);
+        });
+        admin.MapGet("/projects/{id:guid}/links", async (Guid id, HttpContext http, ResumeDbContext db, CancellationToken ct) =>
+        {
+            if (!await db.Projects.AnyAsync(x => x.Id == id && x.PersonId == http.User.PersonId(), ct)) return Results.NotFound();
+            return Results.Ok(await db.ProjectLinks.AsNoTracking().Where(x => x.ProjectId == id).OrderBy(x => x.SortOrder).ToListAsync(ct));
+        });
+        admin.MapPut("/projects/{id:guid}/links", async (Guid id, ProjectLinksRequest request, HttpContext http, ResumeDbContext db, CancellationToken ct) =>
+        {
+            var project = await db.Projects.SingleOrDefaultAsync(x => x.Id == id && x.PersonId == http.User.PersonId(), ct);
+            if (project is null) return Results.NotFound();
+            var allowedKinds = new HashSet<string>(StringComparer.Ordinal) { "googlePlay", "appStore", "github", "repository", "website", "demo", "other" };
+            if (request.Items is null || request.Items.Count > 12 || request.Items.Any(x => x is null || !allowedKinds.Contains(x.Kind) || !IsHttps(x.Url) || x.Url.Length > 1000 || x.LabelAr?.Length > 120 || x.LabelEn?.Length > 120 || (x.Kind == "other" && (string.IsNullOrWhiteSpace(x.LabelAr) || string.IsNullOrWhiteSpace(x.LabelEn)))))
+                return Validation("INVALID_PROJECT_LINK", "items", "Use up to twelve HTTPS project links; other links need Arabic and English labels.");
+            if (request.Items.Select(x => x.Url.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() != request.Items.Count)
+                return Validation("DUPLICATE_PROJECT_LINK", "items", "Each project URL can be added only once.");
+            var current = await db.ProjectLinks.Where(x => x.ProjectId == id).ToListAsync(ct);
+            db.ProjectLinks.RemoveRange(current);
+            db.ProjectLinks.AddRange(request.Items.Select((item, index) => new ProjectLink { ProjectId = id, Kind = item.Kind, Url = item.Url.Trim(), LabelAr = Clean(item.LabelAr), LabelEn = Clean(item.LabelEn), SortOrder = index }));
+            await Audit(db, http.User.AdminId(), "project.links_updated", "Project", id, ct);
+            return Results.NoContent();
         });
         admin.MapDelete("/projects/{id:guid}", async (Guid id, HttpContext http, ResumeDbContext db, CancellationToken ct) =>
         {
@@ -360,6 +381,23 @@ public static class ApiEndpoints
             UpsertProfileTranslation(profile, Locale.Ar, request.HeadlineAr, request.SummaryAr, request.SeoTitleAr, request.SeoDescriptionAr);
             await Audit(db, http.User.AdminId(), "profile.updated", "ResumeProfile", id, ct); return Results.Ok(profile);
         });
+        admin.MapPut("/profiles/{id:guid}/story/{locale}", async (Guid id, string locale, IReadOnlyList<StorySceneRequest> request, HttpContext http, ResumeDbContext db, CancellationToken ct) =>
+        {
+            var profile = await db.ResumeProfiles.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.PersonId == http.User.PersonId() && x.ArchivedAt == null, ct);
+            if (profile is null) return Results.NotFound();
+            if (locale is not ("ar" or "en") || !Enum.TryParse<Locale>(locale, true, out var parsed)) return Validation("INVALID_LOCALE", "locale", "Use ar or en.");
+            var allowed = new HashSet<string>(["intro", "action", "layers", "offline", "backend", "backend-focus", "integration", "operations", "return"]);
+            if (request.Count > 12 || request.Any(x => !allowed.Contains(x.Stage) || !DomainValidation.IsSlug(x.Key) || string.IsNullOrWhiteSpace(x.Title) || string.IsNullOrWhiteSpace(x.Body) || x.Key.Length > 80 || x.Title.Length > 180 || x.Body.Length > 1000 || x.Detail?.Length > 2500 || x.VisualLabel?.Length > 120) || request.Select(x => x.Key).Distinct().Count() != request.Count)
+                return Validation("INVALID_STORY", "story", "Use up to twelve scenes with unique keys, valid stages and concise text.");
+            var slugs = request.Where(x => !string.IsNullOrWhiteSpace(x.ProjectSlug)).Select(x => x.ProjectSlug!).Distinct().ToList();
+            if (slugs.Count > 0 && await db.Projects.CountAsync(x => x.PersonId == profile.PersonId && x.ArchivedAt == null && slugs.Contains(x.Slug), ct) != slugs.Count)
+                return Validation("INVALID_STORY_PROJECT", "projectSlug", "Every linked project must belong to this person.");
+            var translation = await db.ResumeProfileTranslations.SingleOrDefaultAsync(x => x.ProfileId == id && x.Locale == parsed, ct);
+            if (translation is null) return Validation("TRANSLATION_REQUIRED", "locale", "Create the profile translation first.");
+            translation.StoryJson = request.Count == 0 ? null : JsonSerializer.Serialize(request, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            await Audit(db, http.User.AdminId(), "profile.story.updated", "ResumeProfile", id, ct);
+            return Results.Ok(new { story = request });
+        });
         admin.MapDelete("/profiles/{id:guid}", async (Guid id, HttpContext http, ResumeDbContext db, CancellationToken ct) =>
         {
             var profile = await db.ResumeProfiles.SingleOrDefaultAsync(x => x.Id == id && x.PersonId == http.User.PersonId(), ct); if (profile is null) return Results.NotFound();
@@ -372,7 +410,7 @@ public static class ApiEndpoints
             var source = await db.ResumeProfiles.AsNoTracking().Include(x => x.Translations).Include(x => x.Sections).Include(x => x.PdfSettings).Include(x => x.Projects).ThenInclude(x => x.Translations).Include(x => x.Skills).SingleOrDefaultAsync(x => x.Id == id && x.PersonId == http.User.PersonId(), ct);
             if (source is null) return Results.NotFound();
             var copy = new ResumeProfile { PersonId = source.PersonId, InternalName = request.InternalName.Trim(), Slug = request.Slug, DefaultLocale = source.DefaultLocale };
-            copy.Translations = source.Translations.Select(x => new ResumeProfileTranslation { ProfileId = copy.Id, Locale = x.Locale, Headline = x.Headline, Summary = x.Summary, SeoTitle = x.SeoTitle, SeoDescription = x.SeoDescription }).ToList();
+            copy.Translations = source.Translations.Select(x => new ResumeProfileTranslation { ProfileId = copy.Id, Locale = x.Locale, Headline = x.Headline, Summary = x.Summary, StoryJson = x.StoryJson, SeoTitle = x.SeoTitle, SeoDescription = x.SeoDescription }).ToList();
             copy.Sections = source.Sections.Select(x => new ProfileSection { ProfileId = copy.Id, SectionKey = x.SectionKey, WebEnabled = x.WebEnabled, PdfEnabled = x.PdfEnabled, WebOrder = x.WebOrder, PdfOrder = x.PdfOrder }).ToList();
             copy.PdfSettings = source.PdfSettings.Select(x => new ProfilePdfSetting { ProfileId = copy.Id, Locale = x.Locale, TemplateKey = x.TemplateKey, PaperSize = x.PaperSize, FontSize = x.FontSize, MarginMm = x.MarginMm, TargetPages = x.TargetPages }).ToList();
             var projectCopies = source.Projects.ToDictionary(x => x.Id, x => new ProfileProject
@@ -790,6 +828,7 @@ public static class ApiEndpoints
             if (site.Locales.Count == 0 || site.Profiles.Count == 0 || site.Profiles.Count(x => x.IsDefault) != 1) return Validation("SITE_CONFIGURATION_INCOMPLETE", "site", "At least one locale, one profile, and exactly one default profile are required.");
             if (await db.Publications.AnyAsync(x => x.SiteId == id && (x.State == PublicationState.Queued || x.State == PublicationState.Building || x.State == PublicationState.Validating || x.State == PublicationState.Deploying), ct)) return Results.Problem(statusCode: 409, title: "A publish is already active", extensions: Problem("PUBLISH_ACTIVE"));
             var publicProfiles = new List<object>();
+            var enabledLocales = site.Locales.Select(x => x.Locale).ToArray();
             foreach (var siteProfile in site.Profiles.OrderBy(x => x.SortOrder))
             foreach (var locale in site.Locales.Select(x => x.Locale))
             {
@@ -817,9 +856,23 @@ public static class ApiEndpoints
                     var ogImage = await PublicOgImage(setting, locale, site.PersonId, db, ct);
                     projectSeo[projectRecord.Slug] = new { title = setting?.TitleOverride, description = setting?.DescriptionOverride, canonical = setting?.CanonicalOverrideUrl, ogImage, indexable = indexable && setting?.IndexOverride is not false };
                 }
-                publicProfiles.Add(new { profileId = siteProfile.ProfileId, locale = locale.ToString().ToLowerInvariant(), slug = siteProfile.PathSlug, siteProfile.IsDefault, indexable, siteProfile.IsListed, document, pdfDocument, seo = new { title = pageSeo?.TitleOverride ?? fallbackTitle ?? $"{document.FullName} — {document.Headline}", description = pageSeo?.DescriptionOverride ?? fallbackDescription ?? document.Summary, canonical = pageSeo?.CanonicalOverrideUrl, ogImage = pageOgImage }, projectSeo, projectKinds });
+                var story = string.IsNullOrWhiteSpace(translation?.StoryJson) ? null : JsonSerializer.Deserialize<List<StorySceneRequest>>(translation.StoryJson, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                if (story is not null && story.Any(x => x.ProjectSlug is not null && !projectSlugs.Contains(x.ProjectSlug))) return Validation("STORY_PROJECT_NOT_PUBLISHED", "story", "Story links must point to projects selected for the web.");
+                publicProfiles.Add(new { profileId = siteProfile.ProfileId, locale = locale.ToString().ToLowerInvariant(), slug = siteProfile.PathSlug, siteProfile.IsDefault, indexable, siteProfile.IsListed, document, pdfDocument, story, seo = new { title = pageSeo?.TitleOverride ?? fallbackTitle ?? $"{document.FullName} — {document.Headline}", description = pageSeo?.DescriptionOverride ?? fallbackDescription ?? document.Summary, canonical = pageSeo?.CanonicalOverrideUrl, ogImage = pageOgImage }, projectSeo, projectKinds });
             }
             if (publicProfiles.Count != site.Profiles.Count * site.Locales.Count) return Validation("TRANSLATION_REQUIRED", "profiles", "Every published profile must be complete in every enabled site locale.");
+            foreach (var siteProfile in site.Profiles)
+            {
+                var localizedStories = await db.ResumeProfileTranslations.AsNoTracking().Where(x => x.ProfileId == siteProfile.ProfileId && enabledLocales.Contains(x.Locale)).Select(x => x.StoryJson).ToListAsync(ct);
+                var populated = localizedStories.Where(x => !string.IsNullOrWhiteSpace(x)).ToList();
+                if (populated.Count > 0 && populated.Count != site.Locales.Count) return Validation("STORY_TRANSLATION_REQUIRED", "story", "Every enabled locale needs a story when one locale has story scenes.");
+                if (populated.Count > 1)
+                {
+                    var sequence = JsonSerializer.Deserialize<List<StorySceneRequest>>(populated[0]!, new JsonSerializerOptions(JsonSerializerDefaults.Web))?.Select(x => x.Key).ToArray();
+                    if (populated.Skip(1).Any(json => !Enumerable.SequenceEqual(sequence ?? [], JsonSerializer.Deserialize<List<StorySceneRequest>>(json!, new JsonSerializerOptions(JsonSerializerDefaults.Web))?.Select(x => x.Key) ?? [])))
+                        return Validation("STORY_SEQUENCE_MISMATCH", "story", "Story scene keys must match across locales.");
+                }
+            }
             var redirects = await db.SiteRedirects.AsNoTracking().Where(x => x.SiteId == id).Select(x => new { source = x.SourcePath, target = x.TargetPath, status = x.StatusCode }).ToListAsync(ct);
             var payloadCore = new { schemaVersion = 1, baseUrl = site.BaseUrl, site = new { site.Id, site.Name, site.Slug, site.BaseUrl, site.ThemeKey, site.DeploymentTargetKey, site.SearchVerificationToken }, profiles = publicProfiles, redirects, generatedFrom = "immutable-publication" };
             var previousSnapshot = await db.Publications.AsNoTracking().Where(x => x.SiteId == site.Id && x.Purpose == PublicationPurpose.SitePublish).OrderByDescending(x => x.Revision).Select(x => x.Snapshot).FirstOrDefaultAsync(ct);
@@ -899,7 +952,7 @@ public static class ApiEndpoints
                 exportedAt = DateTimeOffset.UtcNow,
                 person = await db.Persons.AsNoTracking().Include(x => x.Translations).Include(x => x.Links).ThenInclude(x => x.Translations).SingleAsync(x => x.Id == personId, ct),
                 skills = await db.Skills.AsNoTracking().Include(x => x.Translations).Where(x => x.PersonId == personId).ToListAsync(ct),
-                projects = await db.Projects.AsNoTracking().Include(x => x.Translations).Include(x => x.Highlights).ThenInclude(x => x.Translations).Where(x => x.PersonId == personId).ToListAsync(ct),
+                projects = await db.Projects.AsNoTracking().Include(x => x.Translations).Include(x => x.Highlights).ThenInclude(x => x.Translations).Include(x => x.Links).Where(x => x.PersonId == personId).ToListAsync(ct),
                 experiences = await db.Experiences.AsNoTracking().Include(x => x.Translations).Include(x => x.Highlights).ThenInclude(x => x.Translations).Where(x => x.PersonId == personId).ToListAsync(ct),
                 educations = await db.Educations.AsNoTracking().Include(x => x.Translations).Where(x => x.PersonId == personId).ToListAsync(ct),
                 certifications = await db.Certifications.AsNoTracking().Include(x => x.Translations).Where(x => x.PersonId == personId).ToListAsync(ct),
@@ -1146,6 +1199,8 @@ public sealed record LinkUpsert(long Version, LinkKind Kind, string Url, int Sor
 public sealed record SkillRequest(long Version, string CanonicalName, string Category, string DisplayNameEn, string DisplayNameAr, string? CategoryEn = null, string? CategoryAr = null);
 public sealed record ProjectTranslationInput(string Name, string? Role, string Summary, string? Description);
 public sealed record ProjectRequest(long Version, string Slug, ProjectKind Kind, DateOnly? StartDate, DateOnly? EndDate, bool IsOngoing, string? RepositoryUrl, string? DemoUrl, ProjectTranslationInput En, ProjectTranslationInput Ar);
+public sealed record ProjectLinkInput(string Kind, string Url, string? LabelAr = null, string? LabelEn = null);
+public sealed record ProjectLinksRequest(IReadOnlyList<ProjectLinkInput> Items);
 public sealed record ProjectMediaRequest(Guid? CoverAssetId, IReadOnlyList<Guid> AssetIds);
 public sealed record MediaUpdateRequest(long Version, string AltAr, string AltEn, string? CaptionAr, string? CaptionEn);
 public sealed record HighlightRequest(long Version, int SortOrder, string TextEn, string TextAr);
@@ -1157,6 +1212,7 @@ public sealed record CertificationTranslationInput(string Name, string Issuer);
 public sealed record CertificationRequest(long Version, DateOnly? IssuedOn, DateOnly? ExpiresOn, string? CredentialId, string? CredentialUrl, CertificationTranslationInput En, CertificationTranslationInput Ar);
 public sealed record ProfileRequest(string InternalName, string Slug, Locale DefaultLocale, string HeadlineEn, string SummaryEn, string HeadlineAr, string SummaryAr);
 public sealed record ProfileUpdateRequest(long Version, string InternalName, string Slug, Locale DefaultLocale, string HeadlineEn, string SummaryEn, string HeadlineAr, string SummaryAr, string? SeoTitleEn, string? SeoDescriptionEn, string? SeoTitleAr, string? SeoDescriptionAr);
+public sealed record StorySceneRequest(string Key, string Stage, string Title, string Body, string? Detail, string? ProjectSlug, string? VisualLabel);
 public sealed record DuplicateProfileRequest(string InternalName, string Slug);
 public sealed record SelectionItem(Guid Id, bool WebEnabled, bool PdfEnabled, int WebOrder, int PdfOrder);
 public sealed record HighlightSelectionItem(Guid Id, bool WebEnabled, bool PdfEnabled, int SortOrder);

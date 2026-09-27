@@ -25,7 +25,7 @@ for (const [name, html] of [["ar", ar], ["en", en]]) {
   const ogImageUrl = html.match(/property="og:image" content="(https:\/\/[^\"]+)"/)?.[1];
   if (!ogImageUrl) errors.push(`${name}: Open Graph image URL is invalid`);
   else { const ogImage = new URL(ogImageUrl); if (ogImage.pathname.startsWith("/og/")) await exists(ogImage.pathname.slice(1)); }
-  check(!/<script\b(?![^>]*\btype="application\/ld\+json")/i.test(html), `${name}: unexpected executable script in static output`);
+  check(!/<script\b(?![^>]*\b(?:type="application\/ld\+json"|data-static-runtime))/i.test(html), `${name}: unexpected executable script in static output`);
   check(!/<link\b(?=[^>]*\brel="preload")(?=[^>]*\bas="script")/i.test(html), `${name}: unexpected script preload in static output`);
   check(html.includes('name="robots"'), `${name}: robots metadata missing`);
   if (html.includes("example.invalid")) check(html.includes('name="robots" content="noindex, follow"'), `${name}: demo content must stay noindex`);

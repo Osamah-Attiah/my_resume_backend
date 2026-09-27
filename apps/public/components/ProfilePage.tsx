@@ -1,7 +1,8 @@
 import { ArrowLeft, ArrowRight, ArrowUpRight, Download, Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
-import type { PublicProfile, PublicProject } from "@resume/contracts";
+import { storyFor, type PublicProfile, type PublicProject } from "@resume/contracts";
 import { ExpandableSummary } from "./ExpandableSummary";
+import { StoryProfilePage } from "./StoryProfilePage";
 
 const copy = {
   en: {
@@ -112,6 +113,8 @@ function splitSummary(summary: string) {
 }
 
 export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: PublicProfile; baseUrl: string; isDefault?: boolean }) {
+  const story = storyFor(profile, isDefault);
+  if (story?.length) return <StoryProfilePage profile={profile} story={story} baseUrl={baseUrl} isDefault={isDefault} />;
   const t = copy[profile.locale];
   const other = profile.locale === "ar" ? "en" : "ar";
   const sections = profile.sections?.length ? profile.sections : ["summary", "skills", "projects", "experience", "education", "certifications", "languages"];

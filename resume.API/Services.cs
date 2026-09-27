@@ -412,7 +412,7 @@ public sealed class SnapshotService(ResumeDbContext db)
         bool Enabled(string key) => enabledSections.Contains(key);
         var projectSelections = Enabled("projects") ? await db.ProfileProjects.AsNoTracking().Include(x => x.Translations).Where(x => x.ProfileId == profileId && (forPdf ? x.PdfEnabled : x.WebEnabled)).OrderBy(x => forPdf ? x.PdfOrder : x.WebOrder).ToListAsync(ct) : [];
         var selectedProjects = projectSelections.Select(x => x.ProjectId).ToList();
-        var projects = await db.Projects.AsNoTracking().Include(x => x.Translations).Include(x => x.Highlights).ThenInclude(x => x.Translations).Include(x => x.Skills).Include(x => x.Media).ThenInclude(x => x.Asset).ThenInclude(x => x!.Translations).Where(x => selectedProjects.Contains(x.Id)).ToListAsync(ct);
+        var projects = await db.Projects.AsNoTracking().Include(x => x.Translations).Include(x => x.Highlights).ThenInclude(x => x.Translations).Include(x => x.Skills).Include(x => x.Media).ThenInclude(x => x.Asset).ThenInclude(x => x!.Translations).Include(x => x.Links).Where(x => selectedProjects.Contains(x.Id)).ToListAsync(ct);
         var profileProjectIds = projectSelections.Select(x => x.Id).ToList();
         var selectedProjectHighlights = await db.ProfileProjectHighlights.AsNoTracking().Where(x => profileProjectIds.Contains(x.ProfileProjectId) && (forPdf ? x.PdfEnabled : x.WebEnabled)).OrderBy(x => x.SortOrder).ToListAsync(ct);
         var selectedSkills = Enabled("skills") ? await db.ProfileSkills.AsNoTracking().Where(x => x.ProfileId == profileId && (forPdf ? x.PdfEnabled : x.WebEnabled)).OrderBy(x => forPdf ? x.PdfOrder : x.WebOrder).Select(x => x.SkillId).ToListAsync(ct) : [];
@@ -440,7 +440,8 @@ public sealed class SnapshotService(ResumeDbContext db)
             var media = mediaRecords.Select(x => x.Media).ToList(); var cover = mediaRecords.FirstOrDefault(x => x.AssetId == p.CoverAssetId)?.Media;
             return new ResumeProject(p.Slug, t.Name, t.Role, targeted?.SummaryOverride ?? t.Summary, t.Description, p.RepositoryUrl, p.DemoUrl,
                 highlights.Select(h => h.Translations.SingleOrDefault(x => x.Locale == locale)?.Text).Where(x => x is not null).Cast<string>().ToList(),
-                p.Skills.OrderBy(x => x.SortOrder).Select(x => skillMap.GetValueOrDefault(x.SkillId)).Where(x => x is not null).Cast<string>().ToList(), cover, media);
+                p.Skills.OrderBy(x => x.SortOrder).Select(x => skillMap.GetValueOrDefault(x.SkillId)).Where(x => x is not null).Cast<string>().ToList(), cover, media,
+                p.Links.OrderBy(x => x.SortOrder).Select(x => new ResumeProjectLink(x.Kind, locale == Locale.Ar ? x.LabelAr ?? "" : x.LabelEn ?? "", x.Url)).ToList());
         }).ToList();
         var orderedSkills = selectedSkills.Select(id => skills.Single(x => x.Id == id)).Select(s => new ResumeSkill(
             locale == Locale.Ar ? (string.IsNullOrWhiteSpace(s.CategoryAr) ? s.Category : s.CategoryAr) : (string.IsNullOrWhiteSpace(s.CategoryEn) ? s.Category : s.CategoryEn),

@@ -25,7 +25,8 @@ public sealed record ResumeDocument(
 public sealed record ResumeLink(string Kind, string Label, string Url);
 public sealed record ResumeSkill(string Category, string Name);
 public sealed record ResumeMedia(string Src, int Width, int Height, string Alt, string? Caption);
-public sealed record ResumeProject(string Slug, string Name, string? Role, string Summary, string? Description, string? RepositoryUrl, string? DemoUrl, IReadOnlyList<string> Highlights, IReadOnlyList<string> Skills, ResumeMedia? Cover = null, IReadOnlyList<ResumeMedia>? Media = null);
+public sealed record ResumeProjectLink(string Kind, string Label, string Url);
+public sealed record ResumeProject(string Slug, string Name, string? Role, string Summary, string? Description, string? RepositoryUrl, string? DemoUrl, IReadOnlyList<string> Highlights, IReadOnlyList<string> Skills, ResumeMedia? Cover = null, IReadOnlyList<ResumeMedia>? Media = null, IReadOnlyList<ResumeProjectLink>? Links = null);
 public sealed record ResumeExperience(string Organization, string JobTitle, string? Location, string StartDate, string? EndDate, string? Summary, IReadOnlyList<string> Highlights);
 public sealed record ResumeEducation(string Institution, string Degree, string? FieldOfStudy, string? Location, string? StartDate, string? EndDate, string? Notes);
 public sealed record ResumeCertification(string Name, string Issuer, string? IssuedOn, string? ExpiresOn, string? CredentialUrl);

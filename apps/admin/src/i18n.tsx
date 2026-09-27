@@ -19,6 +19,8 @@ const apiErrorCopy: Record<string, [string, string]> = {
   INVALID_CURRENT_PASSWORD: ["كلمة المرور الحالية غير صحيحة.", "The current password is incorrect."],
   PASSWORD_TOO_SHORT: ["كلمة المرور الجديدة يجب أن تتكون من 14 حرفًا على الأقل.", "The new password must be at least 14 characters long."],
   INVALID_SLUG: ["استخدم حروفًا لاتينية صغيرة وأرقامًا وشرطات فقط في المسار.", "Use lowercase Latin letters, numbers, and hyphens in the slug."],
+  INVALID_PROJECT_LINK: ["راجع روابط المشروع: استخدم HTTPS، وبحد أقصى 12 رابطًا، واكتب عنوان الرابط الآخر باللغتين.", "Review project links: use HTTPS, add no more than 12, and label other links in both languages."],
+  DUPLICATE_PROJECT_LINK: ["الرابط مكرر داخل المشروع. احتفظ بنسخة واحدة منه.", "This URL appears more than once in the project. Keep one copy."],
   INVALID_LOCALE: ["اللغة غير صالحة. استخدم العربية أو الإنجليزية.", "The locale is invalid. Use Arabic or English."],
   INVALID_LOCALES: ["قائمة اللغات غير صالحة.", "The locale list is invalid."],
   INVALID_LANGUAGE_CODE: ["استخدم رمز لغة بصيغة BCP 47، مثل ar أو en.", "Use a BCP 47 language code, such as ar or en."],

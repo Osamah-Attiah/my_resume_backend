@@ -54,6 +54,30 @@ public sealed class SnapshotServiceTests
     }
 
     [Fact]
+    public async Task Snapshot_publishes_project_links_in_order_with_localized_labels()
+    {
+        var options = new DbContextOptionsBuilder<ResumeDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
+        await using var db = new ResumeDbContext(options);
+        var person = new Person { Translations = [new() { Locale = Locale.En, FullName = "TEST PERSON" }, new() { Locale = Locale.Ar, FullName = "شخص للاختبار" }] };
+        var profile = new ResumeProfile { PersonId = person.Id, Slug = "links-test", InternalName = "LINKS TEST", Translations = [new() { Locale = Locale.En, Headline = "Software Engineer", Summary = "Test" }, new() { Locale = Locale.Ar, Headline = "مهندس برمجيات", Summary = "اختبار" }] };
+        var project = new Project { PersonId = person.Id, Slug = "linked-project", Translations = [new() { Locale = Locale.En, Name = "Linked project", Summary = "Test" }, new() { Locale = Locale.Ar, Name = "مشروع مرتبط", Summary = "اختبار" }], Links =
+        [
+            new() { Kind = "github", Url = "https://github.com/example/project", LabelAr = "المصدر", LabelEn = "Source code", SortOrder = 1 },
+            new() { Kind = "googlePlay", Url = "https://play.google.com/store/apps/details?id=example", SortOrder = 0 }
+        ] };
+        db.AddRange(person, profile, project, new ProfileProject { ProfileId = profile.Id, ProjectId = project.Id });
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var service = new SnapshotService(db);
+        var ar = await service.BuildResumeAsync(person.Id, profile.Id, Locale.Ar, false, TestContext.Current.CancellationToken);
+        var en = await service.BuildResumeAsync(person.Id, profile.Id, Locale.En, true, TestContext.Current.CancellationToken);
+
+        Assert.Equal(["googlePlay", "github"], Assert.Single(ar!.Projects).Links!.Select(x => x.Kind));
+        Assert.Equal("المصدر", ar.Projects[0].Links![1].Label);
+        Assert.Equal("Source code", Assert.Single(en!.Projects).Links![1].Label);
+    }
+
+    [Fact]
     public async Task Snapshot_does_not_leak_unselected_experience_highlights()
     {
         var options = new DbContextOptionsBuilder<ResumeDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;

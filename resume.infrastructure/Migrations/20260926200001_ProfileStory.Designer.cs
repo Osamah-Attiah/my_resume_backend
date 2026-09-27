@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Resume.Infrastructure;
@@ -11,9 +12,11 @@ using Resume.Infrastructure;
 namespace resume.infrastructure.Migrations
 {
     [DbContext(typeof(ResumeDbContext))]
-    partial class ResumeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260926200001_ProfileStory")]
+    partial class ProfileStory
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1592,64 +1595,6 @@ namespace resume.infrastructure.Migrations
                     b.ToTable("project_highlight_translations");
                 });
 
-            modelBuilder.Entity("Resume.Core.ProjectLink", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("Kind")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)")
-                        .HasColumnName("kind");
-
-                    b.Property<string>("LabelAr")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("label_ar");
-
-                    b.Property<string>("LabelEn")
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)")
-                        .HasColumnName("label_en");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("project_id");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer")
-                        .HasColumnName("sort_order");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)")
-                        .HasColumnName("url");
-
-                    b.Property<long>("Version")
-                        .HasColumnType("bigint")
-                        .HasColumnName("version");
-
-                    b.HasKey("Id")
-                        .HasName("p_k_project_links");
-
-                    b.HasIndex("ProjectId", "SortOrder")
-                        .HasDatabaseName("i_x_project_links_project_id_sort_order");
-
-                    b.ToTable("project_links");
-                });
-
             modelBuilder.Entity("Resume.Core.ProjectMedia", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3116,16 +3061,6 @@ namespace resume.infrastructure.Migrations
                         .HasConstraintName("f_k_project_highlight_translations_project_highlights_highlight~");
                 });
 
-            modelBuilder.Entity("Resume.Core.ProjectLink", b =>
-                {
-                    b.HasOne("Resume.Core.Project", null)
-                        .WithMany("Links")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("f_k_project_links_projects_project_id");
-                });
-
             modelBuilder.Entity("Resume.Core.ProjectMedia", b =>
                 {
                     b.HasOne("Resume.Core.MediaAsset", "Asset")
@@ -3432,8 +3367,6 @@ namespace resume.infrastructure.Migrations
             modelBuilder.Entity("Resume.Core.Project", b =>
                 {
                     b.Navigation("Highlights");
-
-                    b.Navigation("Links");
 
                     b.Navigation("Media");
 

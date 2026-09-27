@@ -22,7 +22,7 @@
 - `GitHub__Token`: يبقى على الخادم فقط.
 - اختياري للصور العامة: `Cloudinary__CloudName`, `Cloudinary__ApiKey`, `Cloudinary__ApiSecret`.
 
-يوفر `render.yaml` أسماء هذه المتغيرات بلا قيم سرية. نفّذ migrations من بيئة موثوقة، ثم bootstrap للمالك مرة واحدة بمتغيري `BOOTSTRAP_ADMIN_EMAIL` و`BOOTSTRAP_ADMIN_PASSWORD` واحذفهما فورًا.
+يوفر `render.yaml` أسماء هذه المتغيرات بلا قيم سرية. يطبّق API في بيئة Production migrations المعلّقة عند بدء التشغيل، قبل استقبال الطلبات، بما يناسب خطة Render المجانية التي لا تدعم pre-deploy command. راجع سلامة نسخ قاعدة البيانات قبل رفع تغييرات المخطط. نفّذ bootstrap للمالك مرة واحدة بمتغيري `BOOTSTRAP_ADMIN_EMAIL` و`BOOTSTRAP_ADMIN_PASSWORD` واحذفهما فورًا.
 
 ## 3. أسرار GitHub Actions
 

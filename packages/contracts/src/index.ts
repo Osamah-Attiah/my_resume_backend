@@ -23,14 +23,26 @@ export interface ResumeDocument {
 export interface ResumeLink { kind: string; label: string; url: string }
 export interface ResumeSkill { category: string; name: string }
 export interface ResumeMedia { src: string; width: number; height: number; alt: string; caption?: string }
-export interface ResumeProject { slug: string; name: string; role?: string; summary: string; description?: string; repositoryUrl?: string; demoUrl?: string; highlights: string[]; skills: string[]; cover?: ResumeMedia; media?: ResumeMedia[] }
+export interface ResumeProjectLink { kind: string; label: string; url: string }
+export interface StoryScene {
+  key: string;
+  stage: "intro" | "action" | "layers" | "offline" | "backend" | "backend-focus" | "integration" | "operations" | "return";
+  title: string;
+  body: string;
+  detail?: string;
+  projectSlug?: string;
+  visualLabel?: string;
+}
+export interface ResumeProject { slug: string; name: string; role?: string; summary: string; description?: string; repositoryUrl?: string; demoUrl?: string; links?: ResumeProjectLink[]; highlights: string[]; skills: string[]; cover?: ResumeMedia; media?: ResumeMedia[] }
 export interface ResumeExperience { organization: string; jobTitle: string; location?: string; startDate: string; endDate?: string; summary?: string; highlights: string[] }
 export interface ResumeEducation { institution: string; degree: string; fieldOfStudy?: string; location?: string; startDate?: string; endDate?: string; notes?: string }
 export interface ResumeCertification { name: string; issuer: string; issuedOn?: string; expiresOn?: string; credentialUrl?: string }
 export interface ResumeLanguage { languageCode: string; proficiency: string }
 export interface PublicProject extends ResumeProject { kind: "Personal" | "OpenSource" | "Freelance" | "Employment" }
-export interface PublicProfile extends Omit<ResumeDocument, "projects"> { slug: string; indexable: boolean; listed?: boolean; demo?: boolean; projects: PublicProject[]; pdfDocument?: ResumeDocument; seo: { title: string; description: string; canonical?: string; ogImage?: ResumeMedia }; projectSeo?: Record<string, { title?: string; description?: string; canonical?: string; ogImage?: ResumeMedia; indexable: boolean }> }
+export interface PublicProfile extends Omit<ResumeDocument, "projects"> { slug: string; indexable: boolean; listed?: boolean; demo?: boolean; projects: PublicProject[]; story?: StoryScene[]; pdfDocument?: ResumeDocument; seo: { title: string; description: string; canonical?: string; ogImage?: ResumeMedia }; projectSeo?: Record<string, { title?: string; description?: string; canonical?: string; ogImage?: ResumeMedia; indexable: boolean }> }
 export interface PublicSiteSnapshot { schemaVersion: 1; baseUrl: string; lastModified: string; searchVerificationToken?: string; profiles: Record<Locale, PublicProfile>; allProfiles?: PublicProfile[]; redirects: Array<{ source: string; target: string; status: 301 | 308 }> }
 
 export { demoSnapshot } from "./fixture";
 export { normalizePublicationSnapshot } from "./publication";
+export { defaultStoryScenes, storyFor } from "./default-story";
+export { projectLinksFor } from "./project-links";

@@ -20,6 +20,7 @@ public sealed class ResumeDbContext(DbContextOptions<ResumeDbContext> options) :
     public DbSet<ProjectHighlightTranslation> ProjectHighlightTranslations => Set<ProjectHighlightTranslation>();
     public DbSet<ProjectSkill> ProjectSkills => Set<ProjectSkill>();
     public DbSet<ProjectMedia> ProjectMedia => Set<ProjectMedia>();
+    public DbSet<ProjectLink> ProjectLinks => Set<ProjectLink>();
     public DbSet<Experience> Experiences => Set<Experience>();
     public DbSet<ExperienceTranslation> ExperienceTranslations => Set<ExperienceTranslation>();
     public DbSet<ExperienceHighlight> ExperienceHighlights => Set<ExperienceHighlight>();
@@ -128,6 +129,8 @@ public sealed class ResumeDbContext(DbContextOptions<ResumeDbContext> options) :
         b.Entity<ProjectMedia>().HasIndex(x => new { x.ProjectId, x.AssetId }).IsUnique();
         b.Entity<ProjectMedia>().HasOne<Project>().WithMany(x => x.Media).HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<ProjectMedia>().HasOne(x => x.Asset).WithMany().HasForeignKey(x => x.AssetId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<ProjectLink>().HasOne<Project>().WithMany(x => x.Links).HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<ProjectLink>().HasIndex(x => new { x.ProjectId, x.SortOrder });
         Own<Experience, ExperienceTranslation>(b, x => x.ExperienceId, x => x.Translations, x => x.Locale);
         b.Entity<ExperienceHighlight>().HasOne<Experience>().WithMany(x => x.Highlights).HasForeignKey(x => x.ExperienceId).OnDelete(DeleteBehavior.Cascade);
         Own<ExperienceHighlight, ExperienceHighlightTranslation>(b, x => x.HighlightId, x => x.Translations, x => x.Locale);
@@ -245,14 +248,19 @@ public sealed class ResumeDbContext(DbContextOptions<ResumeDbContext> options) :
         foreach (var property in entity.GetProperties().Where(p => p.ClrType == typeof(string)))
         {
             var name = property.Name;
+            if (name == nameof(ResumeProfileTranslation.StoryJson)) continue;
             property.SetMaxLength(name.Contains("Description", StringComparison.OrdinalIgnoreCase) ? 10_000 :
                 name.Contains("Summary", StringComparison.OrdinalIgnoreCase) ? 2_000 :
                 name is "Snapshot" or "QaReport" or "Metadata" or "PasswordHash" ? null : 1_000);
         }
         b.Entity<ProjectTranslation>().Property(x => x.Name).HasMaxLength(200);
         b.Entity<ResumeProfileTranslation>().Property(x => x.Headline).HasMaxLength(200);
+        b.Entity<ResumeProfileTranslation>().Property(x => x.StoryJson).HasColumnType("jsonb");
         b.Entity<PersonTranslation>().Property(x => x.FullName).HasMaxLength(200);
         b.Entity<ProjectHighlightTranslation>().Property(x => x.Text).HasMaxLength(1000);
+        b.Entity<ProjectLink>().Property(x => x.Kind).HasMaxLength(32);
+        b.Entity<ProjectLink>().Property(x => x.LabelAr).HasMaxLength(120);
+        b.Entity<ProjectLink>().Property(x => x.LabelEn).HasMaxLength(120);
         b.Entity<ExperienceHighlightTranslation>().Property(x => x.Text).HasMaxLength(1000);
     }
 
