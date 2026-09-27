@@ -257,9 +257,7 @@ public sealed class ResumePdfRenderer : IResumePdfRenderer
 
     private static void ExperienceTitle(TextDescriptor text, ResumeExperience experience, bool arabic)
     {
-        text.Span(arabic
-            ? $"{experience.JobTitle} • {experience.Organization}"
-            : $"{experience.JobTitle} | {experience.Organization}").Bold().FontColor(Ink);
+        text.Span($"{experience.JobTitle} | {experience.Organization}").Bold().FontColor(Ink);
         if (!string.IsNullOrWhiteSpace(experience.Location))
             text.Span(arabic ? $"، {experience.Location}" : $" - {experience.Location}").Italic().FontColor(Muted);
     }
