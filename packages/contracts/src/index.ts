@@ -44,5 +44,5 @@ export interface PublicSiteSnapshot { schemaVersion: 1; baseUrl: string; siteId?
 
 export { demoSnapshot } from "./fixture";
 export { normalizePublicationSnapshot } from "./publication";
-export { defaultStoryScenes, storyFor } from "./default-story";
+export { defaultStoryScenes, isOsamahProfileSlug, storyFor } from "./default-story";
 export { projectLinksFor } from "./project-links";

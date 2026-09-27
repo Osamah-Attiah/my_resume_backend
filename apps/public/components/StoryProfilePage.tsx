@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { ArrowLeft, ArrowRight, ArrowUpRight, Download } from "lucide-react";
-import { projectLinksFor, type Locale, type PublicProfile, type StoryScene } from "@resume/contracts";
+import { isOsamahProfileSlug, projectLinksFor, type Locale, type PublicProfile, type StoryScene } from "@resume/contracts";
 import { storyFrames, storyFrameStyle } from "../lib/story-frames";
 
 const words = {
@@ -120,7 +120,7 @@ export function StoryProfilePage({ profile, story, baseUrl, isDefault }: { profi
             return <section className="story-beat story-flow-beat" data-story-beat={index} data-story-number={String(index + 1).padStart(2, "0")} data-story-stage={scene.stage} id={index === 0 ? "intro" : `scene-${scene.key}`} key={scene.key} aria-labelledby={`story-title-${scene.key}`}>
               <div className="story-beat-heading">
                 <div className="story-beat-meta"><span>{String(index + 1).padStart(2, "0")} / {String(story.length).padStart(2, "0")}</span><span>{index === 0 ? t.focus : scene.stage === "backend" || scene.stage === "backend-focus" ? t.backendIllustrative : project ? t.separate : visualStages[profile.locale][scene.stage]}</span></div>
-                {index === 0 && <div className="story-person">{profile.slug === "osamah" && <Image src="/images/profile/osama-attiah.webp" alt={profile.locale === "ar" ? `صورة ${displayName}` : `Portrait of ${displayName}`} width={80} height={80} priority />}<span>{displayName}<small>{profile.locale === "ar" ? "تطبيقات هاتف وخدمات خلفية" : "Mobile apps & backend services"}</small></span></div>}
+                {index === 0 && <div className="story-person">{isOsamahProfileSlug(profile.slug) && <Image src="/images/profile/osama-attiah.webp" alt={profile.locale === "ar" ? `صورة ${displayName}` : `Portrait of ${displayName}`} width={80} height={80} priority />}<span>{displayName}<small>{profile.locale === "ar" ? "تطبيقات هاتف وخدمات خلفية" : "Mobile apps & backend services"}</small></span></div>}
                 {index === 0 ? <h1 id={`story-title-${scene.key}`} aria-label={scene.title}><StoryTitle title={scene.title} intro /></h1> : <h2 id={`story-title-${scene.key}`} aria-label={scene.title}><StoryTitle title={scene.title} intro={false} /></h2>}
               </div>
               <div className="story-visual-anchor" data-story-anchor data-story-index={index} data-story-stage={scene.stage} data-story-frame={JSON.stringify(storyFrames[scene.stage])} data-story-label={scene.visualLabel ?? ""} aria-hidden="true">

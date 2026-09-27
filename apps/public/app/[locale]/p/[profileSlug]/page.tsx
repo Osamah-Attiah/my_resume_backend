@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LiveProfilePage } from "../../../../components/LiveProfilePage";
-import { allProfiles, browserProfile, demoSnapshot, isLocale, profileBySlug } from "../../../../lib/data";
+import { allProfiles, browserProfile, demoSnapshot, isLocale, profileBySlug, profileFor } from "../../../../lib/data";
 import { absoluteAsset, profileOgPath } from "../../../../lib/og";
 
 export const dynamicParams = false;
@@ -24,5 +24,5 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function TargetedProfilePage({ params }: { params: Promise<{ locale: string; profileSlug: string }> }) {
   const { locale, profileSlug } = await params; if (!isLocale(locale)) notFound();
   const profile = profileBySlug(locale, profileSlug); if (!profile) notFound();
-  return <LiveProfilePage profile={browserProfile(profile)} baseUrl={demoSnapshot.baseUrl} siteId={demoSnapshot.siteId} apiBaseUrl={process.env.PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? ""} />;
+  return <LiveProfilePage profile={browserProfile(profile)} baseUrl={demoSnapshot.baseUrl} siteId={demoSnapshot.siteId} apiBaseUrl={process.env.PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? ""} isDefault={profile.slug === profileFor(locale).slug} />;
 }

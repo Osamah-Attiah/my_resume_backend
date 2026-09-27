@@ -1,7 +1,12 @@
 import type { Locale, PublicProfile, StoryScene } from "./index";
 
-// Editorial starting copy for the existing primary profile. A published, edited story
-// always replaces this source; other profiles keep the regular profile layout.
+// Editorial starting copy for Osamah's primary profile. The public API uses
+// osama-flutter, while the earlier local profile used osamah.
+// A published, edited story always replaces this source.
+export function isOsamahProfileSlug(slug: string): boolean {
+  return slug === "osamah" || slug === "osama-flutter";
+}
+
 export const defaultStoryScenes: Record<Locale, StoryScene[]> = {
   ar: [
     { key: "intro", stage: "intro", title: "أبني التطبيق. وأبني ما وراءه.", body: "من واجهة يلمسها الناس إلى خدمة تستقبل الطلب وتعيد نتيجة واضحة. أعمل على طرفَي الرحلة، وأهتم بأن يفهم كل طرف الآخر.", detail: "هذه رحلة تفسيرية عبر مجالات عملي. كل مشروع مذكور يُعرض بوصفه قصة مستقلة، وليس أجزاءً من منتج واحد." },
@@ -29,6 +34,6 @@ export const defaultStoryScenes: Record<Locale, StoryScene[]> = {
 
 export function storyFor(profile: PublicProfile, isDefault: boolean): StoryScene[] | undefined {
   if (profile.story?.length) return profile.story;
-  if (isDefault && profile.slug === "osamah" && !profile.demo) return defaultStoryScenes[profile.locale];
+  if (isDefault && isOsamahProfileSlug(profile.slug) && !profile.demo) return defaultStoryScenes[profile.locale];
   return undefined;
 }

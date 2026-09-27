@@ -3,7 +3,7 @@ import { NavLink, Navigate, Outlet, Route, Routes, useLocation, useNavigate } fr
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { defaultStoryScenes } from "@resume/contracts";
+import { defaultStoryScenes, isOsamahProfileSlug } from "@resume/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, BriefcaseBusiness, Check, ChevronDown, ChevronUp, Download, FileText, FolderKanban, Globe2, Home, Languages, LoaderCircle, LogOut, Menu, Plus, RefreshCw, Save, Settings, Trash2, Upload, UserRound, X } from "lucide-react";
 import { ApiError, api, authExpiredEvent, downloadApiFile, getAccessToken, setAccessToken, uploadApiFile } from "./api";
@@ -293,7 +293,7 @@ function StoryEditor({ profile, locale, saved }: { profile: Profile; locale: Con
   const { l } = useAdminI18n();
   const [scenes, setScenes] = useState<StoryDraft[]>(() => {
     const published = readStory(profile.translations.find(item => item.locale === locale)?.storyJson);
-    const initial = published.length ? published : profile.slug === "osamah" ? defaultStoryScenes[locale] : [];
+    const initial = published.length ? published : isOsamahProfileSlug(profile.slug) ? defaultStoryScenes[locale] : [];
     return initial.map(item => ({ key: item.key, stage: item.stage, title: item.title, body: item.body, detail: item.detail ?? "", projectSlug: item.projectSlug ?? "", visualLabel: item.visualLabel ?? "" }));
   });
   const mutation = useMutation({ mutationFn: () => api(`/api/v1/admin/profiles/${profile.id}/story/${locale}`, { method: "PUT", body: JSON.stringify(scenes.map(item => ({ ...item, detail: item.detail || null, projectSlug: item.projectSlug || null, visualLabel: item.visualLabel || null }))) }), onSuccess: saved });

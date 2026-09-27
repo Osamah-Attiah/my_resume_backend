@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { demoSnapshot } from "./fixture";
-import { defaultStoryScenes } from "./default-story";
+import { defaultStoryScenes, storyFor } from "./default-story";
 import { normalizePublicationSnapshot } from "./publication";
 
 function envelope(locale: "ar" | "en", purpose?: "privatePdfExport") {
@@ -62,5 +62,14 @@ describe("publication snapshot normalization", () => {
   it("keeps the editable starting story aligned across languages", () => {
     expect(defaultStoryScenes.ar.map(scene => [scene.key, scene.stage])).toEqual(defaultStoryScenes.en.map(scene => [scene.key, scene.stage]));
     expect(defaultStoryScenes.ar.filter(scene => scene.stage.startsWith("backend"))).toHaveLength(2);
+  });
+
+  it("shows the redesigned story for the API profile slug and prefers published story content", () => {
+    const profile = { ...demoSnapshot.profiles.ar, slug: "osama-flutter", demo: false };
+    expect(storyFor(profile, true)).toBe(defaultStoryScenes.ar);
+    expect(storyFor(profile, false)).toBeUndefined();
+    expect(storyFor({ ...profile, slug: "another-profile" }, true)).toBeUndefined();
+    const publishedStory = [{ key: "intro", stage: "intro" as const, title: "من الـAPI", body: "محتوى منشور" }];
+    expect(storyFor({ ...profile, story: publishedStory }, true)).toBe(publishedStory);
   });
 });
