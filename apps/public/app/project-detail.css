@@ -410,3 +410,7 @@
   .project-reading-progress span { transition: none; }
   .project-link-card, .project-link-card::before, .project-link-arrow { transition: none; }
 }
+.live-project-detail { min-height: 60vh; padding-block: 100px; }
+.live-project-detail h1 { margin-block: 28px; }
+.live-projects-notice { padding: 12px 24px; background: #fff3df; color: #563d17; text-align: center; font-size: .88rem; }
+.project-detail-page .live-project-reading { grid-template-columns: minmax(0, 1fr); max-width: 980px; }

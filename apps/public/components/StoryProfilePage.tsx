@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { ArrowLeft, ArrowRight, ArrowUpRight, Download } from "lucide-react";
-import type { Locale, PublicProfile, StoryScene } from "@resume/contracts";
+import { projectLinksFor, type Locale, type PublicProfile, type StoryScene } from "@resume/contracts";
 import { storyFrames, storyFrameStyle } from "../lib/story-frames";
 
 const words = {
@@ -91,7 +91,7 @@ export function StoryProfilePage({ profile, story, baseUrl, isDefault }: { profi
   const profilePath = isDefault ? `/${profile.locale}/` : `/${profile.locale}/p/${profile.slug}/`;
   const otherPath = isDefault ? `/${other}/` : `/${other}/p/${profile.slug}/`;
   const canonical = profile.seo.canonical ?? `${baseUrl}${profilePath}`;
-  const projectUrl = (slug: string) => `/${profile.locale}/p/${profile.slug}/projects/${slug}/`;
+  const projectUrl = (slug: string) => `/${profile.locale}/project/?profile=${encodeURIComponent(profile.slug)}&slug=${encodeURIComponent(slug)}`;
   const resumeUrl = `/resumes/${profile.slug}/${profile.locale}/resume.pdf`;
   const linked = new Set(story.map(scene => scene.projectSlug).filter(Boolean));
   const featured = profile.projects.filter(project => linked.has(project.slug));
@@ -143,7 +143,7 @@ export function StoryProfilePage({ profile, story, baseUrl, isDefault }: { profi
         <div className="story-projects">
           {[...featured, ...archive].map((project, index) => <article className="story-project" key={project.slug}>
             <span className="story-project-number">{String(index + 1).padStart(2, "0")}</span>
-            <div><span className="story-project-type">{project.kind === "Employment" ? (profile.locale === "ar" ? "خبرة وظيفية" : "Professional work") : project.kind === "Freelance" ? (profile.locale === "ar" ? "عمل حر" : "Freelance") : profile.locale === "ar" ? "مشروع" : "Project"}</span><h3>{project.name}</h3><p>{project.summary}</p></div>
+            <div><span className="story-project-type">{project.kind === "Employment" ? (profile.locale === "ar" ? "خبرة وظيفية" : "Professional work") : project.kind === "Freelance" ? (profile.locale === "ar" ? "عمل حر" : "Freelance") : profile.locale === "ar" ? "مشروع" : "Project"}</span><h3>{project.name}</h3><p>{project.summary}</p><div className="story-project-external-links">{projectLinksFor(project, profile.locale).map(link => <a href={link.url} key={link.url} target="_blank" rel="noopener noreferrer" aria-label={`${link.label} — ${profile.locale === "ar" ? "يفتح في تبويب جديد" : "opens in a new tab"}`}><bdi>{link.label}</bdi><ArrowUpRight size={15} aria-hidden="true" /></a>)}</div></div>
             <a href={projectUrl(project.slug)} aria-label={`${t.more}: ${project.name}`}><ArrowUpRight size={24} /><span>{t.more}</span></a>
           </article>)}
         </div>

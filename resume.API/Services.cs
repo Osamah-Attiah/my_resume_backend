@@ -429,7 +429,7 @@ public sealed class SnapshotService(ResumeDbContext db)
         var selectedLanguages = Enabled("languages") ? await db.ProfileLanguages.AsNoTracking().Where(x => x.ProfileId == profileId && (forPdf ? x.PdfEnabled : x.WebEnabled)).OrderBy(x => forPdf ? x.PdfOrder : x.WebOrder).Select(x => x.SpokenLanguageId).ToListAsync(ct) : [];
         var languages = await db.SpokenLanguages.AsNoTracking().Where(x => selectedLanguages.Contains(x.Id)).ToListAsync(ct);
         var skillMap = skills.ToDictionary(x => x.Id, x => x.Translations.SingleOrDefault(t => t.Locale == locale)?.DisplayName ?? x.CanonicalName);
-        var orderedProjects = selectedProjects.Select(id => projects.Single(x => x.Id == id)).Select(p =>
+        var orderedProjects = selectedProjects.Select(id => projects.Single(x => x.Id == id)).Where(p => p.ArchivedAt is null).Select(p =>
         {
             var t = p.Translations.Single(x => x.Locale == locale);
             var selection = projectSelections.Single(x => x.ProjectId == p.Id);

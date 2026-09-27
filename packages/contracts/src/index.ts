@@ -40,7 +40,7 @@ export interface ResumeCertification { name: string; issuer: string; issuedOn?: 
 export interface ResumeLanguage { languageCode: string; proficiency: string }
 export interface PublicProject extends ResumeProject { kind: "Personal" | "OpenSource" | "Freelance" | "Employment" }
 export interface PublicProfile extends Omit<ResumeDocument, "projects"> { slug: string; indexable: boolean; listed?: boolean; demo?: boolean; projects: PublicProject[]; story?: StoryScene[]; pdfDocument?: ResumeDocument; seo: { title: string; description: string; canonical?: string; ogImage?: ResumeMedia }; projectSeo?: Record<string, { title?: string; description?: string; canonical?: string; ogImage?: ResumeMedia; indexable: boolean }> }
-export interface PublicSiteSnapshot { schemaVersion: 1; baseUrl: string; lastModified: string; searchVerificationToken?: string; profiles: Record<Locale, PublicProfile>; allProfiles?: PublicProfile[]; redirects: Array<{ source: string; target: string; status: 301 | 308 }> }
+export interface PublicSiteSnapshot { schemaVersion: 1; baseUrl: string; siteId?: string; lastModified: string; searchVerificationToken?: string; profiles: Record<Locale, PublicProfile>; allProfiles?: PublicProfile[]; redirects: Array<{ source: string; target: string; status: 301 | 308 }> }
 
 export { demoSnapshot } from "./fixture";
 export { normalizePublicationSnapshot } from "./publication";

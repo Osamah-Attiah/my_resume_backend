@@ -384,3 +384,4 @@
   .story-flow-beat .story-beat-explanation::before{transform:none}
   .story-visual-traveler .story-phone,.story-visual-traveler .story-phone-screen,.story-visual-traveler .story-phone-view,.story-decision-steps li,.story-decision-result{transition:none}
 }
+.story-project-external-links{display:flex;flex-wrap:wrap;gap:10px 20px;margin-top:16px}.story-project-external-links a{display:inline-flex;align-items:center;gap:5px;border-bottom:1px solid currentColor;padding-bottom:3px;color:var(--story-ink)}.story-project-external-links a:focus-visible{outline:3px solid var(--story-coral);outline-offset:4px}

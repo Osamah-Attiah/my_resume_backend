@@ -88,6 +88,7 @@ steps:
     displayName: Generate, validate, and build public artifacts
     env:
       PUBLIC_SNAPSHOT_PATH: $(Build.SourcesDirectory)/artifacts/publication.json
+      PUBLIC_API_BASE_URL: $(RESUME_API_ORIGIN)
       API_ORIGIN: $(RESUME_API_ORIGIN)
       CALLBACK_SECRET: $(Publishing__CallbackSecret)
       PUBLICATION_ID: $(PUBLICATION_ID)

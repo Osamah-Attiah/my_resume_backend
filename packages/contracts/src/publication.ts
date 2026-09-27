@@ -13,7 +13,7 @@ type PublishedProfile = {
   projectKinds?: Record<string, string>;
   story?: StoryScene[];
 };
-type PublicationEnvelope = { schemaVersion: number; purpose?: "privatePdfExport"; baseUrl?: string; lastModified?: string; site?: { searchVerificationToken?: string }; profiles?: PublishedProfile[]; redirects?: Array<{ source: string; target: string; status: number }> };
+type PublicationEnvelope = { schemaVersion: number; purpose?: "privatePdfExport"; baseUrl?: string; lastModified?: string; site?: { id?: string; searchVerificationToken?: string }; profiles?: PublishedProfile[]; redirects?: Array<{ source: string; target: string; status: number }> };
 
 export function normalizePublicationSnapshot(input: unknown): PublicSiteSnapshot {
   const value = input as PublicationEnvelope;
@@ -28,7 +28,7 @@ export function normalizePublicationSnapshot(input: unknown): PublicSiteSnapshot
     return [locale, toPublicProfile(candidate, isDemo)];
   })) as Record<Locale, PublicProfile>;
   const redirects = (value.redirects ?? []).filter(x => x.status === 301 || x.status === 308).map(x => ({ source: x.source, target: x.target, status: x.status as 301 | 308 }));
-  return { schemaVersion: 1, baseUrl: value.baseUrl.replace(/\/$/, ""), lastModified: value.lastModified ?? new Date().toISOString().slice(0, 10), searchVerificationToken: value.site?.searchVerificationToken, profiles: defaults, allProfiles, redirects };
+  return { schemaVersion: 1, baseUrl: value.baseUrl.replace(/\/$/, ""), siteId: value.site?.id, lastModified: value.lastModified ?? new Date().toISOString().slice(0, 10), searchVerificationToken: value.site?.searchVerificationToken, profiles: defaults, allProfiles, redirects };
 }
 
 function toPublicProfile(value: PublishedProfile, demo: boolean): PublicProfile {

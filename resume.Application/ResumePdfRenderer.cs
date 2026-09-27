@@ -237,8 +237,8 @@ public sealed class ResumePdfRenderer : IResumePdfRenderer
                 {
                     if (arabic)
                     {
-                        row.AutoItem().PaddingRight(8).AlignLeft().ContentFromLeftToRight().Text(FormatDateRange(experience.StartDate, experience.EndDate, arabic)).FontSize(9.5f).Italic().FontColor(Muted);
                         row.RelativeItem().AlignRight().DefaultTextStyle(style => style.FontSize(10.8f)).Text(text => ExperienceTitle(text, experience, arabic));
+                        row.ConstantItem(150).PaddingRight(12).AlignLeft().Text(FormatDateRange(experience.StartDate, experience.EndDate, arabic)).FontSize(9.5f).Italic().FontColor(Muted);
                     }
                     else
                     {
@@ -257,9 +257,11 @@ public sealed class ResumePdfRenderer : IResumePdfRenderer
 
     private static void ExperienceTitle(TextDescriptor text, ResumeExperience experience, bool arabic)
     {
-        text.Span($"{experience.JobTitle} | {experience.Organization}").Bold().FontColor(Ink);
+        text.Span(arabic
+            ? $"{experience.JobTitle} • {experience.Organization}"
+            : $"{experience.JobTitle} | {experience.Organization}").Bold().FontColor(Ink);
         if (!string.IsNullOrWhiteSpace(experience.Location))
-            text.Span($" - {experience.Location}").Italic().FontColor(Muted);
+            text.Span(arabic ? $"، {experience.Location}" : $" - {experience.Location}").Italic().FontColor(Muted);
     }
 
     private static void RenderProjects(IContainer container, ResumeDocument document, Labels labels, bool arabic)
@@ -407,8 +409,11 @@ public sealed class ResumePdfRenderer : IResumePdfRenderer
         return null;
     }
 
-    private static string FormatDateRange(string start, string? end, bool arabic) =>
-        $"{FormatDate(start, arabic)} - {(!string.IsNullOrWhiteSpace(end) ? FormatDate(end, arabic) : Labels.For(arabic).Present)}";
+    private static string FormatDateRange(string start, string? end, bool arabic) => arabic
+        ? !string.IsNullOrWhiteSpace(end)
+            ? $"من {FormatDate(start, true)} إلى {FormatDate(end, true)}"
+            : $"من {FormatDate(start, true)} {Labels.For(true).Present}"
+        : $"{FormatDate(start, false)} - {(!string.IsNullOrWhiteSpace(end) ? FormatDate(end, false) : Labels.For(false).Present)}";
 
     private static string FormatDate(string? value, bool arabic)
     {

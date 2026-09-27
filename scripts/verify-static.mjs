@@ -25,10 +25,9 @@ for (const [name, html] of [["ar", ar], ["en", en]]) {
   const ogImageUrl = html.match(/property="og:image" content="(https:\/\/[^\"]+)"/)?.[1];
   if (!ogImageUrl) errors.push(`${name}: Open Graph image URL is invalid`);
   else { const ogImage = new URL(ogImageUrl); if (ogImage.pathname.startsWith("/og/")) await exists(ogImage.pathname.slice(1)); }
-  check(!/<script\b(?![^>]*\b(?:type="application\/ld\+json"|data-static-runtime))/i.test(html), `${name}: unexpected executable script in static output`);
-  check(!/<link\b(?=[^>]*\brel="preload")(?=[^>]*\bas="script")/i.test(html), `${name}: unexpected script preload in static output`);
+  check(html.includes('/_next/static/'), `${name}: live project runtime missing`);
   check(html.includes('name="robots"'), `${name}: robots metadata missing`);
-  if (html.includes("example.invalid")) check(html.includes('name="robots" content="noindex, follow"'), `${name}: demo content must stay noindex`);
+  if (html.includes('https://example.invalid/')) check(html.includes('name="robots" content="noindex, follow"'), `${name}: demo content must stay noindex`);
   check(!html.includes("localhost") && !html.includes("127.0.0.1"), `${name}: local URL leaked into static output`);
 }
 check(missing.includes("404") && missing.includes('name="robots" content="noindex"'), "404 page or noindex missing");
@@ -47,7 +46,7 @@ for (const root of [resolve(process.cwd(), "apps/public/public/resumes"), resolv
   check(JSON.stringify(actualPdfPaths) === JSON.stringify(expectedPdfPaths), `Stale or missing public PDF files in ${relative(process.cwd(), root)}: expected ${expectedPdfPaths.join(", ")}; found ${actualPdfPaths.join(", ")}`);
 }
 if (errors.length) { console.error(errors.join("\n")); process.exit(1); }
-console.log("Static HTML, script-free delivery, locale direction, SEO/social metadata, robots, icon, 404, and public PDF checks passed.");
+console.log("Static HTML with live project runtime, locale direction, SEO/social metadata, robots, icon, 404, and public PDF checks passed.");
 
 async function text(path) { try { return await readFile(resolve(out, path), "utf8"); } catch { errors.push(`Missing static file: ${path}`); return ""; } }
 async function exists(path) { try { await access(resolve(out, path)); } catch { errors.push(`Missing static file: ${path}`); } }

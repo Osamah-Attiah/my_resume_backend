@@ -59,6 +59,7 @@ jobs:
           echo "base_url=$(jq -er '.baseUrl | select(type == \"string\" and startswith(\"https://\"))' artifacts/publication.json)" >> "${GITHUB_OUTPUT}"
       - name: Generate and verify public artifacts
         env:
+          PUBLIC_API_BASE_URL: ${{ secrets.RESUME_API_ORIGIN }}
           PUBLIC_SNAPSHOT_PATH: ${{ github.workspace }}/artifacts/publication.json
         run: |
           npm run pdf:generate

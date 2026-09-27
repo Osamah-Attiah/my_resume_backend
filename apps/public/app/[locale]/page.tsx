@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ProfilePage } from "../../components/ProfilePage";
-import { demoSnapshot, isLocale, profileFor } from "../../lib/data";
+import { LiveProfilePage } from "../../components/LiveProfilePage";
+import { browserProfile, demoSnapshot, isLocale, profileFor } from "../../lib/data";
 import { absoluteAsset, profileOgPath } from "../../lib/og";
 
 export function generateStaticParams() { return [{ locale: "en" }, { locale: "ar" }]; }
@@ -31,5 +31,5 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 export default async function Page({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  return <ProfilePage profile={profileFor(locale)} baseUrl={demoSnapshot.baseUrl} isDefault />;
+  return <LiveProfilePage profile={browserProfile(profileFor(locale))} baseUrl={demoSnapshot.baseUrl} siteId={demoSnapshot.siteId} apiBaseUrl={process.env.PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? ""} isDefault />;
 }

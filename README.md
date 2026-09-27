@@ -7,7 +7,7 @@ A bilingual platform for managing resume facts once and selecting them for multi
 - `resume.API`: An ASP.NET Core API for a single owner, with short-lived JWTs, rate limiting, audit logging, idempotent publishing, and health checks.
 - `resume.Core` and `resume.infrastructure`: The PostgreSQL and EF Core model for translations, profiles, websites, SEO, and static publication snapshots.
 - `apps/admin`: A React/Vite dashboard in Arabic and English, with RTL/LTR layouts and loading, error, and empty states.
-- `apps/public`: A Next.js site fully exported as static files. It does not connect to the API when visitors browse the site.
+- `apps/public`: A Next.js site exported as static files. Project lists and detail pages refresh from the public API; the published snapshot remains available if the API is offline.
 - `packages/resume-template`: An HTML preview and ATS-friendly, single-column PDF template, with automated text and font checks.
 
 ## Local development
@@ -28,7 +28,7 @@ In two other terminals, start the admin dashboard and public site:
 ```bash
 npm ci
 npm --workspace @resume/admin run dev
-npm --workspace @resume/public run dev
+PUBLIC_API_BASE_URL=http://127.0.0.1:5080 npm --workspace @resume/public run dev
 ```
 
 The admin dashboard runs at `http://127.0.0.1:5173`, and the public site runs at `http://127.0.0.1:3000`. The Vite proxy routes `/api` to port 5080 locally.

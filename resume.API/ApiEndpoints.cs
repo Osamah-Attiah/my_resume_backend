@@ -13,6 +13,7 @@ public static class ApiEndpoints
     {
         var api = endpoints.MapGroup("/api/v1");
         MapAuth(api);
+        MapPublicProjects(api);
         var admin = api.MapGroup("/admin").RequireAuthorization();
         MapOwner(admin);
         MapSkills(admin);
@@ -24,6 +25,33 @@ public static class ApiEndpoints
         MapPublishing(admin);
         MapInternal(api);
         return endpoints;
+    }
+
+    private static void MapPublicProjects(RouteGroupBuilder api)
+    {
+        api.MapGet("/public/sites/{siteId:guid}/profiles/{profileSlug}/projects", async (Guid siteId, string profileSlug, string locale, HttpContext http, ResumeDbContext db, SnapshotService snapshots, CancellationToken ct) =>
+        {
+            if (locale is not ("ar" or "en")) return Results.BadRequest();
+            var language = locale == "ar" ? Locale.Ar : Locale.En;
+            var site = await db.Sites.AsNoTracking().Include(x => x.Profiles).Include(x => x.Locales)
+                .SingleOrDefaultAsync(x => x.Id == siteId && x.ArchivedAt == null && x.CurrentPublicationId != null, ct);
+            var siteProfile = site?.Profiles.SingleOrDefault(x => x.PathSlug == profileSlug);
+            if (siteProfile is null || !site!.Locales.Any(x => x.Locale == language)) return Results.NotFound();
+            var document = await snapshots.BuildResumeAsync(site.PersonId, siteProfile.ProfileId, language, false, ct);
+            if (document is null) return Results.NotFound();
+            var slugs = document.Projects.Select(x => x.Slug).ToArray();
+            var kinds = await db.Projects.AsNoTracking().Where(x => x.PersonId == site.PersonId && slugs.Contains(x.Slug))
+                .Select(x => new { x.Slug, x.Kind }).ToDictionaryAsync(x => x.Slug, x => x.Kind.ToString(), ct);
+            http.Response.Headers.AccessControlAllowOrigin = "*";
+            http.Response.Headers.CacheControl = "no-store";
+            return Results.Ok(new { projects = document.Projects.Select(project => new
+            {
+                project.Slug, project.Name, project.Role, project.Summary, project.Description,
+                project.RepositoryUrl, project.DemoUrl, project.Links, project.Highlights,
+                project.Skills, project.Cover, project.Media,
+                kind = kinds.GetValueOrDefault(project.Slug, "Personal")
+            }) });
+        }).AllowAnonymous();
     }
 
     private static void MapAuth(RouteGroupBuilder api)

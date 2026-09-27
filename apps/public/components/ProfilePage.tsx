@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, ArrowUpRight, Download, Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
-import { storyFor, type PublicProfile, type PublicProject } from "@resume/contracts";
+import { projectLinksFor, storyFor, type PublicProfile, type PublicProject } from "@resume/contracts";
 import { ExpandableSummary } from "./ExpandableSummary";
 import { StoryProfilePage } from "./StoryProfilePage";
 
@@ -260,9 +260,8 @@ function ProjectSection({ profile, labels, number, Arrow }: { profile: PublicPro
           {project.highlights.length > 0 && <ul className="project-highlights">{project.highlights.slice(0, index === 0 ? 3 : 2).map(highlight => <li key={highlight}>{highlight}</li>)}</ul>}
           <ul className="tags" aria-label={labels.skills}>{project.skills.map(skill => <li className="tag" key={skill}><bdi>{skill}</bdi></li>)}</ul>
           <div className="project-actions">
-            <a className="button button-primary" href={"/" + profile.locale + "/p/" + profile.slug + "/projects/" + project.slug + "/"}>{labels.view}<Arrow size={18} aria-hidden="true" /></a>
-            {project.demoUrl && <a className="button button-secondary" href={project.demoUrl} rel="noreferrer">{labels.demoLink}<ArrowUpRight size={18} aria-hidden="true" /></a>}
-            {project.repositoryUrl && <a className="button button-quiet" href={project.repositoryUrl} rel="noreferrer">{labels.code}<ArrowUpRight size={18} aria-hidden="true" /></a>}
+            <a className="button button-primary" href={`/${profile.locale}/project/?profile=${encodeURIComponent(profile.slug)}&slug=${encodeURIComponent(project.slug)}`}>{labels.view}<Arrow size={18} aria-hidden="true" /></a>
+            {projectLinksFor(project, profile.locale).map((link, linkIndex) => <a className={"button " + (linkIndex === 0 ? "button-secondary" : "button-quiet")} href={link.url} key={link.url} target="_blank" rel="noopener noreferrer" aria-label={`${link.label} — ${profile.locale === "ar" ? "يفتح في تبويب جديد" : "opens in a new tab"}`}><bdi>{link.label}</bdi><ArrowUpRight size={18} aria-hidden="true" /></a>)}
           </div>
         </div>
       </article>)}

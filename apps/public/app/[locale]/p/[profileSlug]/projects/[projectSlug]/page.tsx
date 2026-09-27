@@ -76,6 +76,7 @@ export default async function ProjectDetail({ params }: { params: Promise<{ loca
   const sectionNumber = (id: string) => sections.find(section => section.id === id)?.number;
 
   return <div className="project-detail-page" lang={locale} dir={rtl ? "rtl" : "ltr"}>
+    <script src="/site.js" defer data-static-runtime />
     {profile.demo && <div className="demo-notice">{rtl ? "محتوى تجريبي" : "DEMO CONTENT"}</div>}
     <a className="skip-link" href="#project-story">{copy.read}</a>
     <div className="project-reading-progress" aria-hidden="true"><span /></div>

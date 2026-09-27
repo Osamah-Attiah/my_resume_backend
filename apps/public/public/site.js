@@ -1,4 +1,10 @@
 (() => {
+  const legacyProject = window.location.pathname.match(/^\/(ar|en)\/p\/([^/]+)\/projects\/([^/]+)\/?$/);
+  if (legacyProject) {
+    window.location.replace(`/${legacyProject[1]}/project/?profile=${encodeURIComponent(legacyProject[2])}&slug=${encodeURIComponent(legacyProject[3])}`);
+    return;
+  }
+  const initialize = () => {
   const root = document.documentElement;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const storySequence = document.querySelector("[data-story-sequence]");
@@ -249,4 +255,7 @@
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onScroll, { passive: true });
   updateScrollState();
+  };
+  if (document.readyState === "complete") initialize();
+  else window.addEventListener("load", initialize, { once: true });
 })();
