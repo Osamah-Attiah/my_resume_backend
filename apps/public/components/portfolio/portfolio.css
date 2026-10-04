@@ -1,0 +1,71 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities) source(".");
+@source "../../lib/portfolio.ts";
+
+@layer base {
+  .msf-root { line-height: 1.5; }
+  .msf-root *, .msf-root ::before, .msf-root ::after { box-sizing: border-box; border: 0 solid; }
+  .msf-root :where(h1,h2,h3,h4,p) { margin: 0; max-width: none; font-size: inherit; font-weight: inherit; line-height: inherit; letter-spacing: inherit; }
+  .msf-root :where(button,input) { font: inherit; color: inherit; background: transparent; padding: 0; }
+  .msf-root :where(svg,img) { display: block; vertical-align: middle; }
+  .msf-root a { text-decoration: none; }
+}
+
+@media (pointer: fine) {
+  .msf-root.msf-cursor,
+  .msf-root.msf-cursor * {
+    cursor: none !important;
+  }
+}
+.msf-root ::selection {
+  background: #d8ee75;
+  color: #12251a;
+}
+.msf-root .font-mono {
+  font-family: "JetBrains Mono Variable", ui-monospace, monospace;
+}
+.msf-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px currentColor;
+}
+.msf-h1-ghost {
+  color: transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  .msf-h1-ghost {
+    color: inherit;
+  }
+}
+/* Arabic: letter-spacing and uppercase break joining */
+[dir="rtl"] .msf-root *:not(.font-mono):not(.font-mono *) {
+  letter-spacing: 0 !important;
+}
+[dir="rtl"] .msf-root .uppercase {
+  text-transform: none;
+}
+[dir="rtl"] .msf-root h1,
+[dir="rtl"] .msf-root h2 {
+  line-height: 1.25 !important;
+}
+.msf-snap {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.msf-snap::-webkit-scrollbar {
+  display: none;
+}
+
+.msf-root :focus-visible { outline: 3px solid #db684b; outline-offset: 5px; }
+.msf-pinned { scroll-margin-top: 90px; }
+@media (max-width: 767px) and (max-height: 800px) {
+  #method > div > .grid, #build > div > .grid, #connect > div > .grid { padding-top: 90px; }
+  #method > div > .grid > div:last-child { height: 280px; }
+  #build > div > .grid > div:last-child { height: 320px; }
+  #connect > div > .grid > div:last-child { margin-top: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .msf-root *, .msf-root ::before, .msf-root ::after { animation: none !important; transition: none !important; }
+  .msf-beat { position: relative !important; inset: auto !important; grid-area: auto !important; opacity: 1 !important; transform: none !important; filter: none !important; margin-block: 24px; }
+  .msf-pinned { height: auto !important; }
+  .msf-pinned > div { min-height: auto; padding-block: 72px; }
+}

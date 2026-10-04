@@ -9,18 +9,25 @@
     "test": "\"$npm_node_execpath\" ../../node_modules/vitest/vitest.mjs run --passWithNoTests"
   },
   "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "5.2.8",
+    "@fontsource-variable/readex-pro": "5.2.8",
     "@fontsource/manrope": "5.2.8",
     "@fontsource/noto-sans-arabic": "5.2.8",
     "@resume/contracts": "*",
+    "framer-motion": "12.43.0",
+    "lenis": "1.3.26",
     "lucide-react": "0.468.0",
     "next": "16.1.6",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
     "@types/node": "24.10.13",
     "@types/react": "19.2.10",
     "@types/react-dom": "19.2.3",
+    "postcss": "8.5.8",
+    "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
     "vitest": "4.0.18"
   }

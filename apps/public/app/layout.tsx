@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./story.css";
+import "../components/portfolio/portfolio.css";
+import "@fontsource/manrope/500.css";
+import "@fontsource/manrope/800.css";
+import "@fontsource-variable/readex-pro";
+import "@fontsource-variable/jetbrains-mono";
 import { demoSnapshot } from "../lib/data";
 
 export const metadata: Metadata = {
