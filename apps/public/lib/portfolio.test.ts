@@ -3,7 +3,7 @@ import { demoSnapshot } from "@resume/contracts";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PortfolioPage } from "../components/portfolio/PortfolioPage";
-import { fetchProjects, isProjectResponse, projectsApiUrl } from "./live-projects";
+import { fetchPortfolioContent, fetchProjects, isProjectResponse, projectsApiUrl } from "./live-projects";
 import { portfolioProject, profilePath, resumePath } from "./portfolio";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -28,6 +28,37 @@ describe("portfolio backend integration", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ projects: [] }), { status: 200 })));
     expect(await fetchProjects("https://api.example.com/projects")).toEqual([]);
     expect(isProjectResponse({ projects: [] })).toBe(true);
+  });
+
+  it("uses current employment history and accepts deleting the last experience", async () => {
+    const experience = { organization: "Current company", jobTitle: "Engineer", startDate: "2024-01-01", highlights: [] };
+    const apiProject = { ...project, links: project.links ?? [] };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ projects: [apiProject], experiences: [experience] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ projects: [apiProject], experiences: [] })));
+    vi.stubGlobal("fetch", fetchMock);
+    expect((await fetchPortfolioContent("https://api.example.com/projects")).experiences).toEqual([experience]);
+    expect(await fetchPortfolioContent("https://api.example.com/projects")).toEqual({ projects: [apiProject], experiences: [] });
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ cache: "no-store" });
+  });
+
+  it("keeps saved history compatible with an older API during deployment", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ projects: [] }))));
+    expect(await fetchPortfolioContent("https://api.example.com/projects")).not.toHaveProperty("experiences");
+  });
+
+  it("rejects invalid employment data instead of replacing the saved history", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ projects: [], experiences: [{ organization: "Bad record" }] }))));
+    await expect(fetchPortfolioContent("https://api.example.com/projects")).rejects.toThrow("Invalid experience API response");
+  });
+
+  it("renders only the supplied jobs and hides the section when no jobs remain", () => {
+    const profile = { ...demoSnapshot.profiles.en, experiences: [{ organization: "Current company", jobTitle: "Engineer", startDate: "2024-01-01", highlights: [] }] };
+    const props = { profile, baseUrl: "https://portfolio.example.com", apiBaseUrl: "", isDefault: true };
+    expect(renderToStaticMarkup(createElement(PortfolioPage, props))).toContain("Current company");
+    const empty = renderToStaticMarkup(createElement(PortfolioPage, { ...props, profile: { ...profile, experiences: [] } }));
+    expect(empty).not.toContain('id="experience"');
+    expect(empty).not.toContain("Current company");
   });
 
   it("rejects malformed or failed API responses before replacing saved data", async () => {

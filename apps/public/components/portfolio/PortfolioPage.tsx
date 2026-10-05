@@ -30,7 +30,7 @@ import { portfolioProject, profilePath, resumePath, type PortfolioProject } from
 
 /* The same backend contract as the original site:                    */
 /* - the API publication supplies the profile at build time            */
-/* - projects are re-fetched live from the public API, every 15s       */
+/* - projects and experiences refresh from the public API every 15s   */
 
 export type Lang = "en" | "ar";
 type BackendProject = PublicProject;
@@ -1571,14 +1571,14 @@ export function PortfolioPage({ profile, baseUrl, isDefault = false, siteId, api
   useEffect(() => () => { if (navigationTimer.current !== null) window.clearTimeout(navigationTimer.current); }, []);
   const mobile = useMedia("(max-width: 767px)");
   const fine = useMedia("(pointer: fine)");
-  const { projects, status, syncedAt } = useLiveProjects({ profile, siteId, apiBaseUrl });
+  const { projects, experiences, status, syncedAt } = useLiveProjects({ profile, siteId, apiBaseUrl });
   const switchLang = useCallback((locale: Lang) => {
     if (navigationTimer.current !== null || locale === lang) return;
     if (reduce) return window.location.assign(profilePath(profile.slug, locale, isDefault));
     setWipeTo(locale);
     navigationTimer.current = window.setTimeout(() => window.location.assign(profilePath(profile.slug, locale, isDefault)), 450);
   }, [profile.slug, isDefault, lang, reduce]);
-  const view = useMemo(() => toView(profile, projects, { ready, profileSlug: profile.slug, isDefault, lang, mobile, fine, live: { status, syncedAt }, switchLang }), [ready, profile, projects, isDefault, lang, mobile, fine, status, syncedAt, switchLang]);
+  const view = useMemo(() => toView({ ...profile, experiences }, projects, { ready, profileSlug: profile.slug, isDefault, lang, mobile, fine, live: { status, syncedAt }, switchLang }), [ready, profile, projects, experiences, isDefault, lang, mobile, fine, status, syncedAt, switchLang]);
   const canonical = profile.seo.canonical ?? `${baseUrl}${profilePath(profile.slug, lang, isDefault)}`;
   const jsonLd = { "@context": "https://schema.org", "@graph": [
     { "@type": "WebSite", "@id": `${baseUrl}/#website`, url: `${baseUrl}/`, name: profile.fullName, inLanguage: ["ar", "en"] },

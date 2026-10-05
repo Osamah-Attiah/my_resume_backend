@@ -44,7 +44,7 @@ public static class ApiEndpoints
                 .Select(x => new { x.Slug, x.Kind }).ToDictionaryAsync(x => x.Slug, x => x.Kind.ToString(), ct);
             http.Response.Headers.AccessControlAllowOrigin = "*";
             http.Response.Headers.CacheControl = "no-store";
-            return Results.Ok(new { projects = document.Projects.Select(project => new
+            return Results.Ok(new { experiences = document.Experiences, projects = document.Projects.Select(project => new
             {
                 project.Slug, project.Name, project.Role, project.Summary, project.Description,
                 project.RepositoryUrl, project.DemoUrl, project.Links, project.Highlights,
