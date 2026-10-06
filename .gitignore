@@ -23,3 +23,7 @@ test-results/
 *.pem
 *.key
 *.dump
+
+# Keep Markdown files local, except README.md at any level.
+*.md
+!README.md
