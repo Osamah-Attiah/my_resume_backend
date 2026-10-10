@@ -18,11 +18,11 @@ import {
   type MotionValue,
 } from "framer-motion";
 import Lenis from "lenis";
-import { ArrowUpRight, Download, Mail, Phone, Check, Wifi, WifiOff, CreditCard, Wallet, Database, Server, ShieldCheck, Smartphone } from "lucide-react";
+import { ArrowUpRight, Mail, Phone, Check, Wifi, WifiOff, CreditCard, Wallet, Database, Server, ShieldCheck, Smartphone } from "lucide-react";
 import "./portfolio.css";
 import { storyFor, type PublicProfile, type PublicProject } from "@resume/contracts";
 import { useLiveProjects } from "../../lib/live-projects";
-import { portfolioProject, profilePath, resumePath, type PortfolioProject } from "../../lib/portfolio";
+import { portfolioProject, profilePath, type PortfolioProject } from "../../lib/portfolio";
 
 /* ------------------------------------------------------------------ */
 /* DATA                                                                */
@@ -56,7 +56,6 @@ function useMedia(q: string) {
 const STRINGS = {
   en: {
     hint: "Just one tap. Scroll down to see what it sets off.",
-    cv: "Download my CV",
     say: "Email me",
     write: "Email",
     call: "Call",
@@ -96,7 +95,6 @@ const STRINGS = {
   },
   ar: {
     hint: "ضغطة واحدة فقط. انزل قليلًا لترى ما يحدث بعدها.",
-    cv: "حمّل سيرتي الذاتية",
     say: "راسلني",
     write: "راسلني",
     call: "اتصل",
@@ -193,7 +191,6 @@ function toView(pr: BackendProfile, liveProjects: BackendProject[] | null, env: 
     intro: pr.summary,
     email: pr.email ?? "",
     phone: pr.phone ?? "",
-    cvUrl: resumePath(pr.slug, lang),
     workflowSteps: t.steps,
     projects,
     experience,
@@ -538,11 +535,6 @@ function Hero() {
           {D.intro}
         </motion.p>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.95, duration: 0.8, ease }} className="mt-8 flex flex-wrap items-center gap-3">
-          <Magnetic>
-            <a href={D.cvUrl} download target="_blank" rel="noreferrer" data-cursor="CV" className="inline-flex min-h-[44px] items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold" style={{ background: C.forest, color: C.cream }}>
-              <Download size={16} /> {D.t.cv}
-            </a>
-          </Magnetic>
           <Magnetic>
             <a href={`mailto:${D.email}`} data-cursor={D.t.say} className="inline-flex min-h-[44px] max-w-full items-center gap-2 rounded-full border px-6 py-3.5 text-sm font-semibold" style={{ borderColor: C.ink, color: C.ink }}>
               <Mail size={16} /> {D.email}
@@ -1397,9 +1389,6 @@ function Contact() {
             </Magnetic>
             <Magnetic>
               <a href={`tel:${D.phone}`} data-cursor={D.t.call} className="inline-flex min-h-[44px] items-center gap-2 rounded-full border px-6 py-4 text-[15px] font-semibold" style={{ borderColor: C.night, color: C.night }}><Phone size={16} /> <bdi dir="ltr">{D.phone}</bdi></a>
-            </Magnetic>
-            <Magnetic>
-              <a href={D.cvUrl} download target="_blank" rel="noreferrer" data-cursor="CV" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border px-6 py-4 text-[15px] font-semibold" style={{ borderColor: C.night, color: C.night }}><Download size={16} /> {D.t.cv}</a>
             </Magnetic>
           </div>
         </div>

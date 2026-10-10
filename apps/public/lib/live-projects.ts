@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Locale, PublicProfile, PublicProject, ResumeExperience } from "@resume/contracts";
+import { websiteProjects } from "./website-content";
 
 export function projectsApiUrl(apiBaseUrl: string, siteId: string, profileSlug: string, locale: Locale) {
   return `${apiBaseUrl.replace(/\/$/, "")}/api/v1/public/sites/${encodeURIComponent(siteId)}/profiles/${encodeURIComponent(profileSlug)}/projects?locale=${locale}`;
@@ -31,11 +32,12 @@ export async function fetchPortfolioContent(url: string, signal?: AbortSignal): 
   if (!response.ok) throw new Error(`Project API returned ${response.status}`);
   const value: unknown = await response.json();
   if (!isProjectResponse(value)) throw new Error("Invalid project API response");
+  const projects = websiteProjects(value.projects);
   if ("experiences" in value) {
     if (!isExperienceResponse(value.experiences)) throw new Error("Invalid experience API response");
-    return { projects: value.projects, experiences: value.experiences };
+    return { projects, experiences: value.experiences };
   }
-  return { projects: value.projects };
+  return { projects };
 }
 
 export async function fetchProjects(url: string, signal?: AbortSignal): Promise<PublicProject[]> {
@@ -44,9 +46,10 @@ export async function fetchProjects(url: string, signal?: AbortSignal): Promise<
 
 export function useLiveProjects({ profile, siteId, apiBaseUrl }: { profile: PublicProfile; siteId?: string; apiBaseUrl: string }) {
   const url = siteId && apiBaseUrl ? projectsApiUrl(apiBaseUrl, siteId, profile.slug, profile.locale) : "";
-  const [state, setState] = useState<{ url: string; projects: PublicProject[]; experiences: ResumeExperience[]; status: "syncing" | "live" | "cached"; syncedAt: Date | null }>({ url, projects: profile.projects, experiences: profile.experiences, status: url ? "syncing" : "cached", syncedAt: null });
+  const savedProjects = useMemo(() => websiteProjects(profile.projects), [profile.projects]);
+  const [state, setState] = useState<{ url: string; projects: PublicProject[]; experiences: ResumeExperience[]; status: "syncing" | "live" | "cached"; syncedAt: Date | null }>({ url, projects: savedProjects, experiences: profile.experiences, status: url ? "syncing" : "cached", syncedAt: null });
   useEffect(() => {
-    setState({ url, projects: profile.projects, experiences: profile.experiences, status: url ? "syncing" : "cached", syncedAt: null });
+    setState({ url, projects: savedProjects, experiences: profile.experiences, status: url ? "syncing" : "cached", syncedAt: null });
     if (!url) return;
     let active = true;
     let request: AbortController | null = null;
@@ -75,6 +78,6 @@ export function useLiveProjects({ profile, siteId, apiBaseUrl }: { profile: Publ
     const onVisible = () => { if (!document.hidden) void load(); };
     document.addEventListener("visibilitychange", onVisible);
     return () => { active = false; request?.abort(); window.clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); };
-  }, [url, profile.projects, profile.experiences]);
-  return state.url === url ? state : { url, projects: profile.projects, experiences: profile.experiences, status: url ? "syncing" as const : "cached" as const, syncedAt: null };
+  }, [url, savedProjects, profile.experiences]);
+  return state.url === url ? state : { url, projects: savedProjects, experiences: profile.experiences, status: url ? "syncing" as const : "cached" as const, syncedAt: null };
 }

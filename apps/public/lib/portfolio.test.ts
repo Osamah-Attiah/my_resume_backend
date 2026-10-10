@@ -30,6 +30,26 @@ describe("portfolio backend integration", () => {
     expect(isProjectResponse({ projects: [] })).toBe(true);
   });
 
+  it.each(["ar", "en"] as const)("hides freelance work in the first %s render while the API is still pending", locale => {
+    const profile = { ...demoSnapshot.profiles[locale], projects: [project, { ...project, slug: "hidden-freelance", name: "Hidden freelance project", kind: "Freelance" as const }] };
+    const html = renderToStaticMarkup(createElement(PortfolioPage, { profile, baseUrl: "https://portfolio.example.com", apiBaseUrl: "https://api.example.com", siteId: "published-site", isDefault: true }));
+    expect(html).toContain(project.name);
+    expect(html).not.toContain("Hidden freelance project");
+    expect(html).not.toContain("hidden-freelance");
+    expect(html).not.toContain("/resumes/");
+    expect(html).not.toContain("download=");
+  });
+
+  it("keeps freelance work hidden after API refreshes, including when it is the last project", async () => {
+    const publicProject = { ...project, links: project.links ?? [] };
+    const freelance = { ...publicProject, kind: "Freelance" };
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ projects: [publicProject, freelance], experiences: [] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ projects: [freelance], experiences: [] }))));
+    expect(await fetchPortfolioContent("https://api.example.com/projects")).toEqual({ projects: [publicProject], experiences: [] });
+    expect(await fetchPortfolioContent("https://api.example.com/projects")).toEqual({ projects: [], experiences: [] });
+  });
+
   it("uses current employment history and accepts deleting the last experience", async () => {
     const experience = { organization: "Current company", jobTitle: "Engineer", startDate: "2024-01-01", highlights: [] };
     const apiProject = { ...project, links: project.links ?? [] };
@@ -76,7 +96,7 @@ describe("portfolio backend integration", () => {
     expect(html).toContain("اسم من نسخة النشر");
     expect(html).toContain('lang="ar"');
     expect(html).toContain('dir="rtl"');
-    expect(html).toContain("/resumes/published-profile/ar/resume.pdf");
+    expect(html).not.toContain("/resumes/published-profile/ar/resume.pdf");
     expect(html).toContain("/ar/project/?profile=published-profile");
     expect(html).toContain('href="/en/"');
     expect(html).toContain('type="application/ld+json"');

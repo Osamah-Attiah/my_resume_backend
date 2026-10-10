@@ -29,18 +29,16 @@ for (const [name, html] of [["ar", ar], ["en", en]]) {
   check(html.includes('name="robots"'), `${name}: robots metadata missing`);
   if (html.includes('https://example.invalid/')) check(html.includes('name="robots" content="noindex, follow"'), `${name}: demo content must stay noindex`);
   check(!html.includes("localhost") && !html.includes("127.0.0.1"), `${name}: local URL leaked into static output`);
+  check(!/href="\/resumes\/[^\"]+\.pdf"/.test(html), `${name}: resume download must stay hidden in the public interface`);
 }
 check(missing.includes("404") && missing.includes('name="robots" content="noindex"'), "404 page or noindex missing");
 check(robots.includes("Sitemap:"), "robots sitemap missing");
 check(!/^Disallow: \/\s*$/m.test(robots), "robots must not block crawlers from reading page-level noindex metadata");
 check(headers.includes("/resumes/*") && headers.includes("X-Robots-Tag: noindex") && headers.includes("Content-Type: application/pdf"), "PDF noindex/content-type headers missing");
 await exists("icon.svg");
-for (const html of [ar, en]) {
-  const pdf = html.match(/href="\/(resumes\/[^\"]+\.pdf)"/)?.[1];
-  if (!pdf) errors.push("Public resume download link missing"); else await exists(pdf);
-}
 const manifest = JSON.parse(await readFile(resolve(process.cwd(), "artifacts/pdf-qa/manifest.json"), "utf8"));
 const expectedPdfPaths = manifest.map(item => `resumes/${item.slug}/${item.locale}/resume.pdf`).sort();
+for (const path of expectedPdfPaths) await exists(path);
 for (const root of [resolve(process.cwd(), "apps/public/public/resumes"), resolve(out, "resumes")]) {
   const actualPdfPaths = (await files(root)).filter(path => path.endsWith(".pdf")).map(path => `resumes/${relative(root, path)}`).sort();
   check(JSON.stringify(actualPdfPaths) === JSON.stringify(expectedPdfPaths), `Stale or missing public PDF files in ${relative(process.cwd(), root)}: expected ${expectedPdfPaths.join(", ")}; found ${actualPdfPaths.join(", ")}`);

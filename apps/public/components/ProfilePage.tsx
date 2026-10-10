@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, ArrowUpRight, Download, Mail, MapPin, Phone } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
 import Image from "next/image";
 import { projectLinksFor, storyFor, type PublicProfile, type PublicProject } from "@resume/contracts";
 import { ExpandableSummary } from "./ExpandableSummary";
@@ -30,7 +30,6 @@ const copy = {
     view: "View project",
     code: "View code",
     demoLink: "Live demo",
-    resume: "Download resume",
     demo: "DEMO CONTENT — Replace every field before publishing.",
     personal: "Personal project",
     openSource: "Open source",
@@ -65,7 +64,6 @@ const copy = {
     view: "تفاصيل المشروع",
     code: "عرض الكود",
     demoLink: "التجربة المباشرة",
-    resume: "تحميل السيرة",
     demo: "محتوى تجريبي — استبدل جميع الحقول قبل النشر.",
     personal: "مشروع شخصي",
     openSource: "مفتوح المصدر",
@@ -189,7 +187,6 @@ export function ProfilePage({ profile, baseUrl, isDefault = false }: { profile: 
             <p className="headline">{profile.headline}</p>
             <div className="hero-actions">
               {profile.projects.length > 0 && <a className="button button-primary" href="#work">{t.works}<Arrow size={18} aria-hidden="true" /></a>}
-              <a className="button button-secondary" href={"/resumes/" + profile.slug + "/" + profile.locale + "/resume.pdf"} download>{t.resume}<Download size={18} aria-hidden="true" /></a>
             </div>
             {profile.projects.length > 0 && <a className="hero-scroll" href="#work"><span className="hero-scroll-line" aria-hidden="true" />{t.scroll}</a>}
           </div>
@@ -239,7 +236,6 @@ function AboutSection({ profile, labels, number }: { profile: PublicProfile; lab
         </ul>
         <div className="about-actions">
           {profile.links.length > 0 && <div className="about-links">{profile.links.map(link => <a key={link.url} href={link.url} rel="me noreferrer">{link.label}<ArrowUpRight size={15} aria-hidden="true" /></a>)}</div>}
-          <a className="button button-primary" href={"/resumes/" + profile.slug + "/" + profile.locale + "/resume.pdf"} download>{labels.resume}<Download size={18} aria-hidden="true" /></a>
         </div>
       </div>
     </div>
