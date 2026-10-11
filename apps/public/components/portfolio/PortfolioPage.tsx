@@ -192,6 +192,7 @@ function toView(pr: BackendProfile, liveProjects: BackendProject[] | null, env: 
     roleExtra,
     intro: pr.summary,
     email: pr.email ?? "",
+    links: (pr.links ?? []).filter((l) => /^https:\/\//.test(l.url)),
     phone: pr.phone ?? "",
     workflowSteps: t.steps,
     projects,
@@ -1396,6 +1397,11 @@ function Contact() {
             <Magnetic>
               <a href={`tel:${D.phone}`} data-cursor={D.t.call} className="inline-flex min-h-[44px] items-center gap-2 rounded-full border px-6 py-4 text-[15px] font-semibold" style={{ borderColor: C.night, color: C.night }}><Phone size={16} /> <bdi dir="ltr">{D.phone}</bdi></a>
             </Magnetic>
+            {D.links.map((l) => (
+              <Magnetic key={l.url}>
+                <a href={l.url} target="_blank" rel="me noopener noreferrer" className="inline-flex min-h-[44px] items-center gap-2 rounded-full border px-6 py-4 text-[15px] font-semibold" style={{ borderColor: C.night, color: C.night }}>{l.label} <ArrowUpRight size={16} /></a>
+              </Magnetic>
+            ))}
           </div>
         </div>
       </motion.div>
