@@ -87,7 +87,8 @@ const STRINGS = {
     expEyebrow: "Where I've worked",
     years: (n: number): [string, string] => [`${n}+ years`, "with Flutter."],
     contactFallback: "Contact",
-    contactTitle: "Got a project in mind? I'd like to hear about it.",
+    contactTitle: "Hiring a Flutter or .NET developer? I'm in Riyadh and available now.",
+    available: "Available now \u00b7 Riyadh",
     footer: "Thanks for scrolling this far.",
     present: "Present",
     hello: "Hello",
@@ -126,7 +127,8 @@ const STRINGS = {
     expEyebrow: "أين عملت",
     years: (n: number): [string, string] => [`أكثر من ${n} ${n <= 10 ? "سنوات" : "سنة"}`, "مع Flutter."],
     contactFallback: "تواصل",
-    contactTitle: "عندك مشروع؟ يسعدني أن نتحدث عنه.",
+    contactTitle: "تبحث عن مطور Flutter أو .NET؟ أنا في الرياض ومتاح الآن.",
+    available: "متاح الآن \u00b7 الرياض",
     footer: "شكرًا لأنك وصلت إلى هنا.",
     present: "حتى الآن",
     hello: "أهلًا",
@@ -528,7 +530,11 @@ function Hero() {
             </span>
           ))}
         </h1>
-        <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.75, duration: 0.8, ease }} className="mt-6 text-[clamp(18px,2vw,26px)] font-semibold tracking-[-0.01em] lg:max-w-[600px]" style={{ color: C.ink }}>
+        <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7, duration: 0.8, ease }} className="mt-6 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[13px] font-semibold" style={{ borderColor: C.forest, color: C.forest }}>
+          <span aria-hidden className="inline-block h-2 w-2 rounded-full" style={{ background: C.forest }} />
+          {D.t.available}
+        </motion.p>
+        <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.75, duration: 0.8, ease }} className="mt-4 text-[clamp(18px,2vw,26px)] font-semibold tracking-[-0.01em] lg:max-w-[600px]" style={{ color: C.ink }}>
           {D.role} {D.roleExtra && <span className="font-medium" style={{ color: C.muted }}>+ {D.roleExtra}</span>}
         </motion.p>
         <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85, duration: 0.8, ease }} className="mt-3 line-clamp-3 max-w-[520px] text-[17px] leading-relaxed" style={{ color: C.muted }}>

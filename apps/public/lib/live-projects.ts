@@ -47,7 +47,7 @@ export async function fetchProjects(url: string, signal?: AbortSignal): Promise<
 export function useLiveProjects({ profile, siteId, apiBaseUrl }: { profile: PublicProfile; siteId?: string; apiBaseUrl: string }) {
   const url = siteId && apiBaseUrl ? projectsApiUrl(apiBaseUrl, siteId, profile.slug, profile.locale) : "";
   const savedProjects = useMemo(() => websiteProjects(profile.projects), [profile.projects]);
-  const [state, setState] = useState<{ url: string; projects: PublicProject[]; experiences: ResumeExperience[]; status: "syncing" | "live" | "cached"; syncedAt: Date | null }>({ url, projects: savedProjects, experiences: profile.experiences, status: url ? "syncing" : "cached", syncedAt: null });
+  const [state, setState] = useState<{ url: string; projects: PublicProject[]; experiences: ResumeExperience[]; status: "syncing" | "live" | "cached"; syncedAt: Date | null }>({ url, projects: savedProjects, experiences: profile.experiences, status: "cached", syncedAt: null });
   useEffect(() => {
     setState({ url, projects: savedProjects, experiences: profile.experiences, status: url ? "syncing" : "cached", syncedAt: null });
     if (!url) return;
